@@ -4,7 +4,7 @@
 ### Setup
 Just import the class to your project.  
 ### Usage
-```yaml
+```java
 Player player = ...
 BlockChanger.setBlock(player.getLocation, Material.GOLD_BLOCK);
 BlockChanger. // see all the methods
