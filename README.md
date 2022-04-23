@@ -13,7 +13,7 @@ BlockChanger. // see all the methods
 ### Tips
 To make things more efficient you can do the following:  
 #### Cache Objects  
-All methods the use ItemStack as a parameter need to convert bukkit ItemStack to nms BlockData, this process can take a little bit of time. So to avoid this, you can cache the ItemStack and use the methods from UncheckedSetters class using .getUncheckedSetters(). This way, you can reuse the converted objects again and again. Here is a simple demonstration:  
+All methods that use ItemStack as a parameter need to convert bukkit ItemStack to nms BlockData, this process can take a little bit of time. So to avoid this, you can cache the ItemStack and use the methods from UncheckedSetters class using .getUncheckedSetters(). This way, you can reuse the converted objects again and again. Here is a simple demonstration:  
 ```java
 // cache the world
 Object nmsWorld = BlockChanger.getWorld("world");
