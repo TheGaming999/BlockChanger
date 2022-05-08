@@ -23,7 +23,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
 /**
- * @version 1.1
+ * @version 1.1.1
  * @author TheGaming999
  * @apiNote 1.7 - 1.18 easy to use utility class to take advantage of different methods that allow you to change blocks at rocket speeds
  * <p>Made with the help of <a href="https://github.com/CryptoMorin/XSeries/blob/master/src/main/java/com/cryptomorin/xseries/ReflectionUtils.java">ReflectionUtils</a> by <a href="https://github.com/CryptoMorin">CryptoMorin</a> 
@@ -104,27 +104,23 @@ public class BlockChanger {
 		String getSections = ReflectionUtils.supports(18) ? "d" : "getSections";
 		String sectionSetType = ReflectionUtils.supports(18) ? "a" : ReflectionUtils.VER < 8 ? "setTypeId" : "setType";
 
-		MethodType notifyMethodType = ReflectionUtils.supports(8) ? MethodType.methodType(void.class, blockPosition) : null;
-		MethodType chunkSetTypeMethodType = ReflectionUtils.supports(8) ? MethodType.methodType(blockData, blockPosition, blockData, boolean.class) : null;
-		MethodType chunkSectionSetTypeMethodType = ReflectionUtils.supports(8) ? MethodType.methodType(void.class, int.class, int.class, int.class, blockData) : null;
-		MethodType chunkSectionConstructorMT = ReflectionUtils.supports(14) ? MethodType.methodType(void.class, int.class) : MethodType.methodType(void.class, int.class, boolean.class);
+		MethodType notifyMethodType = ReflectionUtils.VER >= 14 ? MethodType.methodType(void.class, blockPosition, blockData, blockData, int.class) :
+			ReflectionUtils.VER < 8 ? MethodType.methodType(void.class, int.class, int.class, int.class) : ReflectionUtils.VER == 8 ?
+			MethodType.methodType(void.class, blockPosition) : MethodType.methodType(void.class, blockPosition, blockData, blockData, int.class) ;
+		
+		MethodType chunkSetTypeMethodType = ReflectionUtils.VER <= 12 ? ReflectionUtils.VER >= 8 ? MethodType.methodType(blockData, blockPosition, blockData) :
+			MethodType.methodType(boolean.class, int.class, int.class, int.class, block, int.class) :
+			MethodType.methodType(blockData, blockPosition, blockData, boolean.class);
+		
+		MethodType chunkSectionSetTypeMethodType = ReflectionUtils.VER >= 14 ? MethodType.methodType(blockData, int.class, int.class, int.class, blockData) :
+			ReflectionUtils.VER < 8 ? MethodType.methodType(void.class, int.class, int.class, int.class, block) :
+			MethodType.methodType(void.class, int.class, int.class, int.class, blockData);
+		
+		MethodType chunkSectionConstructorMT = ReflectionUtils.supports(18) ? null :
+			ReflectionUtils.supports(14) ? MethodType.methodType(void.class, int.class) :
+			MethodType.methodType(void.class, int.class, boolean.class);
 
 		BlockPositionConstructor blockPositionConstructor = null;
-
-		if (ReflectionUtils.VER <= 12) {
-			chunkSetTypeMethodType = ReflectionUtils.VER >= 8 ? MethodType.methodType(blockData, blockPosition, blockData) : MethodType.methodType(boolean.class, int.class, int.class, int.class, block, int.class);
-		}
-
-		if (ReflectionUtils.VER >= 14) {
-			chunkSectionSetTypeMethodType = MethodType.methodType(blockData, int.class, int.class, int.class, blockData);
-		} else if (ReflectionUtils.VER < 8) {
-			chunkSectionSetTypeMethodType = MethodType.methodType(void.class, int.class, int.class, int.class, block);
-			notifyMethodType = MethodType.methodType(void.class, int.class, int.class, int.class);
-		} else if (ReflectionUtils.VER > 8) {
-			notifyMethodType = MethodType.methodType(void.class, blockPosition, blockData, blockData, int.class);
-		}
-
-		chunkSectionSetTypeMethodType = ReflectionUtils.VER >= 14 ? null : ReflectionUtils.VER < 8 ? null : ReflectionUtils.VER >= 8 ? null : null;
 		
 		try {
 			worldGetHandle = lookup.findVirtual(craftWorld, "getHandle", MethodType.methodType(worldServer));
@@ -146,7 +142,7 @@ public class BlockChanger {
 			chunkGetSections = lookup.findVirtual(chunk, getSections, MethodType.methodType(ReflectionUtils.toArrayClass(chunkSection)));
 			chunkSectionSetType = lookup.findVirtual(chunkSection, sectionSetType, chunkSectionSetTypeMethodType);
 			setSectionElement = MethodHandles.arrayElementSetter(ReflectionUtils.toArrayClass(chunkSection));
-			chunkSectionConstructor = lookup.findConstructor(chunkSection, chunkSectionConstructorMT);
+			chunkSectionConstructor = !ReflectionUtils.supports(18) ? lookup.findConstructor(chunkSection, chunkSectionConstructorMT) : null;
 			if (ReflectionUtils.supports(18)) {
 				getLevelHeightAccessor = lookup.findVirtual(chunk, "z", MethodType.methodType(levelHeightAccessor));
 				getSectionIndex = lookup.findVirtual(levelHeightAccessor, "e", MethodType.methodType(int.class, int.class));
