@@ -31,8 +31,8 @@ With that being said, the performance difference is barely noticable due to the 
 #### Use The Proper Method  
 If you are going to place a lot of blocks all at once, use setBlocks(...). Otherwise, use setBlock. The reason for this is the same as the reason above.  
 ### ToDo  
+- Add support for material data / durability (Done)
 - Change BlockPosition to MutableBlockPosition to prevent creating a new instance of BlockPosition repeatedly which can improve performance.  
-- Add support for material data / durability (someone reported that they are ignored for some reason?)  
 - Use MultiBlockChange packet to reduce client lag.  
 - Method to update lighting?  
 - Methods to set blocks asynchronously using "the heavy splittable tasks"?  
