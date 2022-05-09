@@ -23,7 +23,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
 /**
- * @version 1.1.1
+ * @version 1.2
  * @author TheGaming999
  * @apiNote 1.7 - 1.18 easy to use utility class to take advantage of different methods that allow you to change blocks at rocket speeds
  * <p>Made with the help of <a href="https://github.com/CryptoMorin/XSeries/blob/master/src/main/java/com/cryptomorin/xseries/ReflectionUtils.java">ReflectionUtils</a> by <a href="https://github.com/CryptoMorin">CryptoMorin</a> 
@@ -34,23 +34,28 @@ public class BlockChanger {
 	private final static Map<Material, Object> NMS_BLOCK_MATERIALS = new HashMap<>();
 	private final static Map<World, Object> NMS_WORLDS = new HashMap<>();
 	private final static MethodHandle WORLD_GET_HANDLE;
-	/**<p>Invoked paramters -> <i>CraftItemStack.asNMSCopy({@literal<param>})</i>*/
+	/**<p>Invoked parameters -> <i>CraftItemStack.asNMSCopy({@literal<org.bukkit.inventory.ItemStack>})</i>*/
 	private final static MethodHandle NMS_ITEM_STACK_COPY;
-	/**<p>Invoked paramters -> <i>Block.asBlock({@literal<param>})</i>*/
+	/**<p>Invoked parameters -> <i>Block.asBlock({@literal<net.minecraft.world.item.Item>})</i>*/
 	private final static MethodHandle NMS_BLOCK_FROM_ITEM;
-	/**<p>Invoked paramters -> <i>{@literal<ItemStack>}.getItem()</i>*/
+	/**<p>Invoked parameters -> <i>{@literal<net.minecraft.world.item.ItemStack>}.getItem()</i>*/
 	private final static MethodHandle NMS_ITEM_STACK_TO_ITEM;
-	/**<p>Invoked paramters -> <i>{@literal<Block>}.getBlockData()</i>*/
+	/**
+	 * <p>Changes block data / durability</p>
+	 * <p>Invoked parameters -> <i>{@literal<net.minecraft.world.block.Block>}.fromLegacyData({@literal<int>});</i></p>
+	 */
+	private final static MethodHandle BLOCK_DATA_FROM_LEGACY_DATA;
+	/**<p>Invoked parameters -> <i>{@literal<net.minecraft.world.level.block.Block>}.getBlockData()</i>*/
 	private final static MethodHandle ITEM_TO_BLOCK_DATA;
 	private final static MethodHandle SET_TYPE_AND_DATA;
 	private final static MethodHandle WORLD_GET_CHUNK;
 	private final static MethodHandle CHUNK_GET_SECTIONS;
 	private final static MethodHandle CHUNK_SECTION_SET_TYPE;
-	/**<p>Behavior -> <i>Chunk.getLevelHeightAccessor()</i>*/
+	/**<p>Behavior -> <i>{@literal<Chunk>}.getLevelHeightAccessor()</i>*/
 	private final static MethodHandle GET_LEVEL_HEIGHT_ACCESSOR;
-	/**<p>Behavior -> <i>Chunk.getSectionIndex()</i> or <i>LevelHeightAccessor.getSectionIndex()</i>*/
+	/**<p>Behavior -> <i>{@literal<Chunk>}.getSectionIndex()</i> or <i>{@literal<LevelHeightAccessor>}.getSectionIndex()</i>*/
 	private final static MethodHandle GET_SECTION_INDEX;
-	/**<p>Behavior -> <i>Chunk.getSections[param1] = param2</i>*/
+	/**<p>Behavior -> <i>Chunk.getSections[{@literal<index>}] = {@literal<ChunkSection>}</i></p>*/
 	private final static MethodHandle SET_SECTION_ELEMENT;
 	private final static MethodHandle CHUNK_SECTION;
 	private final static MethodHandle CHUNK_SET_TYPE;
@@ -74,7 +79,7 @@ public class BlockChanger {
 		Class<?> chunk = ReflectionUtils.getNMSClass("world.level.chunk", "Chunk");
 		Class<?> chunkSection = ReflectionUtils.getNMSClass("world.level.chunk", "ChunkSection");
 		Class<?> levelHeightAccessor = ReflectionUtils.supports(17) ? ReflectionUtils.getNMSClass("world.level.LevelHeightAccessor") : null;
-
+		
 		MethodHandles.Lookup lookup = MethodHandles.lookup();
 
 		MethodHandle worldGetHandle = null;
@@ -93,6 +98,7 @@ public class BlockChanger {
 		MethodHandle getSectionIndex = null;
 		MethodHandle setSectionElement = null;
 		MethodHandle chunkSectionConstructor = null;
+		MethodHandle blockDataFromLegacyData = null;
 
 		String asBlock = ReflectionUtils.supports(18) || ReflectionUtils.VER < 8 ? "a" : "asBlock";
 		String getBlockData = ReflectionUtils.supports(18) ? "n" : "getBlockData";
@@ -119,6 +125,8 @@ public class BlockChanger {
 		MethodType chunkSectionConstructorMT = ReflectionUtils.supports(18) ? null :
 			ReflectionUtils.supports(14) ? MethodType.methodType(void.class, int.class) :
 			MethodType.methodType(void.class, int.class, boolean.class);
+		
+		MethodType fromLegacyDataMethodType = ReflectionUtils.VER <= 12 ? MethodType.methodType(blockData, int.class) : null;
 
 		BlockPositionConstructor blockPositionConstructor = null;
 		
@@ -137,6 +145,7 @@ public class BlockChanger {
 				blockPositionConstructor = new BlockPositionAncient(blockPositionXYZ);
 			}
 			nmsItemStackToItem = lookup.findVirtual(worldItemStack, getItem, MethodType.methodType(item));
+			blockDataFromLegacyData = ReflectionUtils.VER <= 12 ? lookup.findVirtual(block, "fromLegacyData", fromLegacyDataMethodType) : null;
 			chunkSetTypeM = lookup.findVirtual(chunk, chunkSetType, chunkSetTypeMethodType);
 			blockNotify = lookup.findVirtual(worldServer, notify, notifyMethodType);
 			chunkGetSections = lookup.findVirtual(chunk, getSections, MethodType.methodType(ReflectionUtils.toArrayClass(chunkSection)));
@@ -169,8 +178,10 @@ public class BlockChanger {
 		SET_SECTION_ELEMENT = setSectionElement;
 		CHUNK_SECTION = chunkSectionConstructor;
 		BLOCK_POSITION_CONSTRUCTOR = blockPositionConstructor;
+		BLOCK_DATA_FROM_LEGACY_DATA = blockDataFromLegacyData;
 		
-		BLOCK_DATA_GETTER = ReflectionUtils.supports(8) ? new BlockDataGetter() : new BlockDataGetterLegacy();
+		BLOCK_DATA_GETTER = ReflectionUtils.supports(13) ? new BlockDataGetter() : ReflectionUtils.supports(8) ? 
+				new BlockDataGetterLegacy() : new BlockDataGetterAncient();
 
 		BLOCK_UPDATER = ReflectionUtils.supports(18) ? new BlockUpdaterLatest(BLOCK_NOTIFY, CHUNK_SET_TYPE, GET_SECTION_INDEX, GET_LEVEL_HEIGHT_ACCESSOR) :
 			ReflectionUtils.supports(17) ? new BlockUpdater17(BLOCK_NOTIFY, CHUNK_SET_TYPE, GET_SECTION_INDEX, CHUNK_SECTION, SET_SECTION_ELEMENT) :
@@ -908,20 +919,24 @@ public class BlockChanger {
 
 	private interface BlockDataRetriever {
 
+		default Object getNMSItem(ItemStack itemStack) throws Throwable {
+			if(itemStack == null) throw new NullPointerException("ItemStack is null!");
+			Object nmsItemStack = NMS_ITEM_STACK_COPY.invoke(itemStack);
+			if (nmsItemStack == null) throw new IllegalArgumentException("Failed to get NMS ItemStack!");
+			return NMS_ITEM_STACK_TO_ITEM.invoke(nmsItemStack);
+		}
+		
 		Object fromItemStack(ItemStack itemStack);
 
 	}
 
+	// 1.13+ or 1.8+ without data support
 	private static class BlockDataGetter implements BlockDataRetriever {
 
 		@Override
 		public Object fromItemStack(ItemStack itemStack) {
 			try {
-				if(itemStack == null) throw new NullPointerException("ItemStack is null!");
-				Object nmsItemStack = NMS_ITEM_STACK_COPY.invoke(itemStack);
-				if (nmsItemStack == null) throw new IllegalArgumentException("Failed to get NMS ItemStack!");
-				Object nmsItem = NMS_ITEM_STACK_TO_ITEM.invoke(nmsItemStack);
-				Object block = NMS_BLOCK_FROM_ITEM.invoke(nmsItem);
+				Object block = NMS_BLOCK_FROM_ITEM.invoke(getNMSItem(itemStack));
 				return ITEM_TO_BLOCK_DATA.invoke(block);
 			} catch (Throwable e) {
 				e.printStackTrace();
@@ -930,17 +945,31 @@ public class BlockChanger {
 		}
 
 	}
-
+	
+	// 1.8-1.12
 	private static class BlockDataGetterLegacy implements BlockDataRetriever {
 
 		@Override
 		public Object fromItemStack(ItemStack itemStack) {
 			try {
-				if(itemStack == null) throw new NullPointerException("ItemStack is null!");
-				Object nmsItemStack = NMS_ITEM_STACK_COPY.invoke(itemStack);
-				if (nmsItemStack == null) throw new IllegalArgumentException("Failed to get NMS ItemStack!");
-				Object nmsItem = NMS_ITEM_STACK_TO_ITEM.invoke(nmsItemStack);
-				return NMS_BLOCK_FROM_ITEM.invoke(nmsItem);
+				Object block = NMS_BLOCK_FROM_ITEM.invoke(getNMSItem(itemStack));
+				short data = itemStack.getDurability();
+				return data > 0 ? BLOCK_DATA_FROM_LEGACY_DATA.invoke(block, data) : ITEM_TO_BLOCK_DATA.invoke(block);
+			} catch (Throwable e) {
+				e.printStackTrace();
+			}
+			return null;
+		}
+
+	}
+
+	// 1.7
+	private static class BlockDataGetterAncient implements BlockDataRetriever {
+
+		@Override
+		public Object fromItemStack(ItemStack itemStack) {
+			try {
+				return NMS_BLOCK_FROM_ITEM.invoke(getNMSItem(itemStack));
 			} catch (Throwable e) {
 				e.printStackTrace();
 			}
