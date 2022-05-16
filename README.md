@@ -22,17 +22,20 @@ Object nmsWorld = BlockChanger.getWorld("world");
 Object nmsBlockData = BlockChanger.getBlockData(new ItemStack(Material.DIAMOND_BLOCK));
 
 // cache the block position if possible
-Object blockPosition = BlockChanger.newBlockPosition(nmsWorld, 0, 0, 0);
+Object blockPosition = BlockChanger.newMutableBlockPosition(nmsWorld, 0, 0, 0);
 
 // reuse the same method with the cached objects
+BlockChanger.getUncheckedSetters().setBlock(nmsWorld, blockPosition, nmsBlockData, 2);
+
+// You could change block position coordinates as of 1.3 instead of creating a new one.
+BlockChanger.setBlockPosition(blockPosition, 1, 0, 0);
+
 BlockChanger.getUncheckedSetters().setBlock(nmsWorld, blockPosition, nmsBlockData, 2);
 ```  
 With that being said, the performance difference is barely noticable due to the fact that the methods we are using to convert the objects are cached using MethodHandles. 
 #### Use The Proper Method  
 If you are going to place a lot of blocks all at once, use setBlocks(...). Otherwise, use setBlock. The reason for this is the same as the reason above.  
 ### ToDo  
-- Add support for material data / durability (Done)
-- Change BlockPosition to MutableBlockPosition to prevent creating a new instance of BlockPosition repeatedly which can improve performance.  
 - Use MultiBlockChange packet to reduce client lag.  
 - Method to update lighting?  
 - Methods to set blocks asynchronously using "the heavy splittable tasks"?  
