@@ -22,8 +22,9 @@ import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
+
 /**
- * @version 1.2
+ * @version 1.3
  * @author TheGaming999
  * @apiNote 1.7 - 1.18 easy to use utility class to take advantage of different methods that allow you to change blocks at rocket speeds
  * <p>Made with the help of <a href="https://github.com/CryptoMorin/XSeries/blob/master/src/main/java/com/cryptomorin/xseries/ReflectionUtils.java">ReflectionUtils</a> by <a href="https://github.com/CryptoMorin">CryptoMorin</a> 
@@ -33,6 +34,7 @@ public class BlockChanger {
 
 	private final static Map<Material, Object> NMS_BLOCK_MATERIALS = new HashMap<>();
 	private final static Map<World, Object> NMS_WORLDS = new HashMap<>();
+	private final static Map<String, Object> NMS_WORLD_NAMES = new HashMap<>();
 	private final static MethodHandle WORLD_GET_HANDLE;
 	/**<p>Invoked parameters -> <i>CraftItemStack.asNMSCopy({@literal<org.bukkit.inventory.ItemStack>})</i>*/
 	private final static MethodHandle NMS_ITEM_STACK_COPY;
@@ -71,6 +73,7 @@ public class BlockChanger {
 		Class<?> worldServer = ReflectionUtils.getNMSClass("server.level", "WorldServer");
 		Class<?> craftWorld = ReflectionUtils.getCraftClass("CraftWorld");
 		Class<?> blockPosition = ReflectionUtils.supports(8) ? ReflectionUtils.getNMSClass("core", "BlockPosition") : null;
+		Class<?> mutableBlockPosition = ReflectionUtils.supports(8) ? ReflectionUtils.getNMSClass("core", "BlockPosition$MutableBlockPosition") : null;
 		Class<?> blockData = ReflectionUtils.supports(8) ? ReflectionUtils.getNMSClass("world.level.block.state", "IBlockData") : null;
 		Class<?> craftItemStack = ReflectionUtils.getCraftClass("inventory.CraftItemStack");
 		Class<?> worldItemStack = ReflectionUtils.getNMSClass("world.item", "ItemStack");
@@ -99,6 +102,8 @@ public class BlockChanger {
 		MethodHandle setSectionElement = null;
 		MethodHandle chunkSectionConstructor = null;
 		MethodHandle blockDataFromLegacyData = null;
+		MethodHandle mutableBlockPositionSet = null;
+		MethodHandle mutableBlockPositionXYZ = null;
 
 		String asBlock = ReflectionUtils.supports(18) || ReflectionUtils.VER < 8 ? "a" : "asBlock";
 		String getBlockData = ReflectionUtils.supports(18) ? "n" : "getBlockData";
@@ -109,6 +114,7 @@ public class BlockChanger {
 		String notify = ReflectionUtils.supports(18) ? "a" : "notify";
 		String getSections = ReflectionUtils.supports(18) ? "d" : "getSections";
 		String sectionSetType = ReflectionUtils.supports(18) ? "a" : ReflectionUtils.VER < 8 ? "setTypeId" : "setType";
+		String setXYZ = ReflectionUtils.supports(13) ? "d" : "c";
 
 		MethodType notifyMethodType = ReflectionUtils.VER >= 14 ? MethodType.methodType(void.class, blockPosition, blockData, blockData, int.class) :
 			ReflectionUtils.VER < 8 ? MethodType.methodType(void.class, int.class, int.class, int.class) : ReflectionUtils.VER == 8 ?
@@ -134,15 +140,18 @@ public class BlockChanger {
 			worldGetHandle = lookup.findVirtual(craftWorld, "getHandle", MethodType.methodType(worldServer));
 			worldGetChunk = lookup.findVirtual(worldServer, getChunkAt, MethodType.methodType(chunk, int.class, int.class));
 			nmsItemStackCopy = lookup.findStatic(craftItemStack, "asNMSCopy", MethodType.methodType(worldItemStack, ItemStack.class));
-			blockFromItem = lookup.findStatic(block, asBlock, MethodType.methodType(block, item));
+			blockFromItem = lookup.findStatic(block, asBlock, MethodType.methodType(block, item));	
 			if(ReflectionUtils.supports(8)) {
 				blockPositionXYZ = lookup.findConstructor(blockPosition, MethodType.methodType(void.class, int.class, int.class, int.class));
+				mutableBlockPositionXYZ = lookup.findConstructor(mutableBlockPosition, MethodType.methodType(void.class, int.class, int.class, int.class));
 				itemToBlockData = lookup.findVirtual(block, getBlockData, MethodType.methodType(blockData));
 				setTypeAndData = lookup.findVirtual(worldServer, setType, MethodType.methodType(boolean.class, blockPosition, blockData, int.class));
-				blockPositionConstructor = new BlockPositionNormal(blockPositionXYZ);
+				mutableBlockPositionSet = lookup.findVirtual(mutableBlockPosition, setXYZ, MethodType.methodType(mutableBlockPosition, int.class, int.class, int.class));
+				blockPositionConstructor = new BlockPositionNormal(blockPositionXYZ, mutableBlockPositionXYZ, mutableBlockPositionSet);
 			} else {
 				blockPositionXYZ = lookup.findConstructor(Location.class, MethodType.methodType(void.class, World.class, double.class, double.class, double.class));
-				blockPositionConstructor = new BlockPositionAncient(blockPositionXYZ);
+				mutableBlockPositionXYZ = lookup.findConstructor(Location.class, MethodType.methodType(void.class, World.class, double.class, double.class, double.class));
+				blockPositionConstructor = new BlockPositionAncient(blockPositionXYZ, mutableBlockPositionXYZ);
 			}
 			nmsItemStackToItem = lookup.findVirtual(worldItemStack, getItem, MethodType.methodType(item));
 			blockDataFromLegacyData = ReflectionUtils.VER <= 12 ? lookup.findVirtual(block, "fromLegacyData", fromLegacyDataMethodType) : null;
@@ -205,7 +214,12 @@ public class BlockChanger {
 
 	}
 
-	public static void call() {}
+	/**
+	 * Simply calls <b>static {}</b> so methods get cached, and ensures that the first setBlock method call is as executed as fast as possible.
+	 * <p>This already happens when calling a method for the first time.</p>
+	 * <p>Added for debugging purposes.</p>
+	 */
+	public static void cache() {}
 	
 	private static void addNMSBlockData(Material material) {
 		ItemStack itemStack = new ItemStack(material);
@@ -216,8 +230,10 @@ public class BlockChanger {
 	private static void addNMSWorld(World world) {
 		if(world == null) return; 
 		Object nmsWorld = getNMSWorld(world);
-		if(nmsWorld != null)
+		if(nmsWorld != null) {
 			NMS_WORLDS.put(world, nmsWorld);
+			NMS_WORLD_NAMES.put(world.getName(), nmsWorld);
+		}
 	}
 
 	/**
@@ -414,11 +430,12 @@ public class BlockChanger {
 		Object blockData = getBlockData(material);
 		if (blockData == null)
 			throw new NullPointerException("Unable to retrieve block data for the corresponding material.");
+		Object blockPosition = newMutableBlockPosition(world, 0, 0, 0);
 		locations.forEach(location -> {
 			int x = location.getBlockX();
 			int y = location.getBlockY();
 			int z = location.getBlockZ();
-			Object blockPosition = newBlockPosition(world, x, y, z);
+			setBlockPosition(world, x, y, z);
 			setTypeAndData(nmsWorld, blockPosition, blockData, physics ? 3 : 2);
 		});
 	}
@@ -435,11 +452,12 @@ public class BlockChanger {
 	public static void setBlocks(World world, List<Location> locations, ItemStack itemStack, boolean physics) {
 		Object nmsWorld = getWorld(world);
 		Object blockData = getBlockData(itemStack);
+		Object blockPosition = newMutableBlockPosition(world, 0, 0, 0);
 		locations.forEach(location -> {
 			int x = location.getBlockX();
 			int y = location.getBlockY();
 			int z = location.getBlockZ();
-			Object blockPosition = newBlockPosition(world, x, y, z);
+			setBlockPosition(world, x, y, z);
 			setTypeAndData(nmsWorld, blockPosition, blockData, physics ? 3 : 2);
 		});
 	}
@@ -590,6 +608,7 @@ public class BlockChanger {
 		Object blockData = getBlockData(material);
 		if (blockData == null)
 			throw new NullPointerException("Unable to retrieve block data for the corresponding material.");
+		Object blockPosition = newMutableBlockPosition(world, 0, 0, 0);
 		locations.forEach(location -> {
 			int x = location.getBlockX();
 			int y = location.getBlockY();
@@ -601,7 +620,7 @@ public class BlockChanger {
 			Object[] sections = getSections(nmsChunk);
 			Object section = getSection(nmsChunk, sections, y);
 			setTypeChunkSection(section, j, k, l, blockData);
-			Object blockPosition = newBlockPosition(world, x, y, z);
+			setBlockPosition(blockPosition, x, y, z);
 			updateBlock(nmsWorld, blockPosition, blockData, false);
 		});
 	}
@@ -616,6 +635,7 @@ public class BlockChanger {
 	public static void setSectionBlocks(World world, List<Location> locations, ItemStack itemStack) {
 		Object nmsWorld = getWorld(world);
 		Object blockData = getBlockData(itemStack);
+		Object blockPosition = newMutableBlockPosition(world, 0, 0, 0);
 		locations.forEach(location -> {
 			int x = location.getBlockX();
 			int y = location.getBlockY();
@@ -627,7 +647,7 @@ public class BlockChanger {
 			Object[] sections = getSections(nmsChunk);
 			Object section = getSection(nmsChunk, sections, y);
 			setTypeChunkSection(section, j, k, l, blockData);
-			Object blockPosition = newBlockPosition(world, x, y, z);
+			setBlockPosition(blockPosition, x, y, z);
 			updateBlock(nmsWorld, blockPosition, blockData, false);
 		});
 	}
@@ -662,6 +682,7 @@ public class BlockChanger {
 		int x3 = 0, y3 = 0, z3 = 0;
 		Location location = new Location(loc1.getWorld(), baseX + x3, baseY + y3, baseZ + z3);
 		int cuboidSize = sizeX*sizeY*sizeZ;
+		Object blockPosition = newMutableBlockPosition(location);
 		for (int i = 0; i < cuboidSize ; i++) {
 			int x = location.getBlockX();
 			int y = location.getBlockY();
@@ -673,7 +694,7 @@ public class BlockChanger {
 			Object[] sections = getSections(nmsChunk);
 			Object section = getSection(nmsChunk, sections, y);
 			setTypeChunkSection(section, j, k, l, blockData);
-			Object blockPosition = newBlockPosition(world, x, y, z);
+			setBlockPosition(blockPosition, x, y, z);
 			updateBlock(nmsWorld, blockPosition, blockData, false);
 			if (++x3 >= sizeX) {
 				x3 = 0;
@@ -714,6 +735,7 @@ public class BlockChanger {
 		int x3 = 0, y3 = 0, z3 = 0;
 		Location location = new Location(loc1.getWorld(), baseX + x3, baseY + y3, baseZ + z3);
 		int cuboidSize = sizeX*sizeY*sizeZ;
+		Object blockPosition = newMutableBlockPosition(location);
 		for (int i = 0; i < cuboidSize ; i++) {
 			int x = location.getBlockX();
 			int y = location.getBlockY();
@@ -725,7 +747,7 @@ public class BlockChanger {
 			Object[] sections = getSections(nmsChunk);
 			Object section = getSection(nmsChunk, sections, y);
 			setTypeChunkSection(section, j, k, l, blockData);
-			Object blockPosition = newBlockPosition(world, x, y, z);
+			setBlockPosition(blockPosition, x, y, z);
 			updateBlock(nmsWorld, blockPosition, blockData, false);
 			if (++x3 >= sizeX) {
 				x3 = 0;
@@ -759,17 +781,6 @@ public class BlockChanger {
 		} catch (Throwable e) {
 			e.printStackTrace();
 		}
-	}
-
-	/**
-	 * Refreshes a block so it appears to the players
-	 * @param world nms world {@link #getWorld(World)}
-	 * @param blockPosition nms block position {@link #newBlockPosition(Object, Object, Object, Object)}
-	 * @param blockData nms block data {@link #getBlockData(Material)}
-	 * @param physics whether physics should be applied or not
-	 */
-	public static void updateBlock(Object world, Object blockPosition, Object blockData, boolean physics) {
-		BLOCK_UPDATER.update(world, blockPosition, blockData, physics ? 3 : 2);
 	}
 
 	private static void setTypeAndData(Object nmsWorld, Object blockPosition, Object blockData, int physics) {
@@ -811,23 +822,6 @@ public class BlockChanger {
 		return null;
 	}
 
-	/**
-	 * 
-	 * @param world can be null for versions 1.8+
-	 * @param x point
-	 * @param y point
-	 * @param z point
-	 * @return new constructed block position
-	 */
-	public static Object newBlockPosition(@Nullable Object world, Object x, Object y, Object z) {
-		try {
-			return BLOCK_POSITION_CONSTRUCTOR.newBlockPosition(world, x, y, z);
-		} catch (Throwable e) {
-			e.printStackTrace();
-		}
-		return null;
-	}
-
 	private static Object getNMSBlockData(ItemStack itemStack) {
 		try {
 			if(itemStack == null) return null;
@@ -843,6 +837,82 @@ public class BlockChanger {
 		return null;
 	}
 
+	/**
+	 * Refreshes a block so it appears to the players
+	 * @param world nms world {@link #getWorld(World)}
+	 * @param blockPosition nms block position {@link #newBlockPosition(Object, Object, Object, Object)}
+	 * @param blockData nms block data {@link #getBlockData(Material)}
+	 * @param physics whether physics should be applied or not
+	 */
+	public static void updateBlock(Object world, Object blockPosition, Object blockData, boolean physics) {
+		BLOCK_UPDATER.update(world, blockPosition, blockData, physics ? 3 : 2);
+	}
+	
+	/**
+	 * 
+	 * @param world can be null for versions 1.8+
+	 * @param x point
+	 * @param y point
+	 * @param z point
+	 * @return constructs an unmodifiable block position
+	 */
+	public static Object newBlockPosition(@Nullable Object world, Object x, Object y, Object z) {
+		try {
+			return BLOCK_POSITION_CONSTRUCTOR.newBlockPosition(world, x, y, z);
+		} catch (Throwable e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
+	
+	/**
+	 * 
+	 * @param world can be null for 1.8+
+	 * @param x x pos
+	 * @param y y pos
+	 * @param z z pos
+	 * @return constructs a mutable block position that can be modified using {@link #setBlockPosition(Object, Object, Object, Object)}
+	 */
+	public static Object newMutableBlockPosition(@Nullable Object world, Object x, Object y, Object z) {
+		try {
+			return BLOCK_POSITION_CONSTRUCTOR.newMutableBlockPosition(world, x, y, z);
+		} catch (Throwable e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
+	
+	/**
+	 * 
+	 * @param location Location to get coordinates from
+	 * @return constructs a mutable block position that can be modified using {@link #setBlockPosition(Object, Object, Object, Object)}
+	 */
+	public static Object newMutableBlockPosition(Location location) {
+		try {
+			return BLOCK_POSITION_CONSTRUCTOR.newMutableBlockPosition(location.getWorld(), location.getBlockX(), location.getBlockY(), location.getBlockZ());
+		} catch (Throwable e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
+	
+	/**
+	 * 
+	 * @param mutableBlockPosition MutableBlockPosition to modify
+	 * @param x new x pos
+	 * @param y new y pos
+	 * @param z new z pos
+	 * @return modified MutableBlockPosition (no need to set the variable to the returned MutableBlockPosition)
+	 */
+	public static Object setBlockPosition(Object mutableBlockPosition, Object x, Object y, Object z) {
+		try {
+			return BLOCK_POSITION_CONSTRUCTOR.set(mutableBlockPosition, x, y, z);
+		} catch (Throwable e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
+	
 	/**
 	 * 
 	 * @param itemStack bukkit ItemStack
@@ -871,6 +941,15 @@ public class BlockChanger {
 	public static Object getWorld(World world) {
 		return NMS_WORLDS.get(world);
 	}
+	
+	/**
+	 * 
+	 * @param worldName to get nms world for
+	 * @return stored nms world for the specified world name
+	 */
+	public static Object getWorld(String worldName) {
+		return NMS_WORLD_NAMES.get(worldName);
+	}
 
 	/**
 	 * @return all available block materials for the current version separated by commas as follows: <p><i>dirt, stone, glass, etc...</i>
@@ -894,16 +973,45 @@ public class BlockChanger {
 	 */
 	public static class UncheckedSetters {
 
+		/**
+		 * 
+		 * @param nmsWorld using {@link BlockChanger#getWorld(World) getWorld(World)} or {@link BlockChanger#getWorld(String) getWorld(String)}
+		 * @param blockPosition using {@link BlockChanger#newMutableBlockPosition(Location) newMutableBlockPosition(Location)}
+		 * @param nmsBlockData {@link BlockChanger#getBlockData(ItemStack) getBlockData(ItemStack)} or {@link BlockChanger#getBlockData(Material) getBlockData(Material)}
+		 * @param physics 3 = applies physics, 2 = doesn't
+		 * <p><i>blockPosition</i> can be further modified with new coordinates using {@link BlockChanger#setBlockPosition(Object, Object, Object, Object)}
+		 */
 		public void setBlock(Object nmsWorld, Object blockPosition, Object nmsBlockData, int physics) {
 			setTypeAndData(nmsWorld, blockPosition, nmsBlockData, physics);
 		}
 
+		/**
+		 * 
+		 * @param nmsWorld using {@link BlockChanger#getWorld(World) getWorld(World)} or {@link BlockChanger#getWorld(String) getWorld(String)}
+		 * @param blockPosition using {@link BlockChanger#newMutableBlockPosition(Location) newMutableBlockPosition(Location)}
+		 * @param nmsBlockData {@link BlockChanger#getBlockData(ItemStack) getBlockData(ItemStack)} or {@link BlockChanger#getBlockData(Material) getBlockData(Material)}
+		 * @param x x coordinate of the block
+		 * @param z z coordinate of the block
+		 * @param physics 3 = applies physics, 2 = doesn't
+		 * <p><i>blockPosition</i> can be further modified with new coordinates using {@link BlockChanger#setBlockPosition(Object, Object, Object, Object)}
+		 */
 		public void setChunkBlock(Object nmsWorld, Object blockPosition, Object nmsBlockData, int x, int z, boolean physics) {
 			Object chunk = getChunkAt(nmsWorld, x, z);
 			setType(chunk, blockPosition, nmsBlockData, physics);
 			updateBlock(nmsWorld, blockPosition, nmsBlockData, physics);
 		}
 
+		/**
+		 * 
+		 * @param nmsWorld using {@link BlockChanger#getWorld(World) getWorld(World)} or {@link BlockChanger#getWorld(String) getWorld(String)}
+		 * @param blockPosition using {@link BlockChanger#newMutableBlockPosition(Location) newMutableBlockPosition(Location)}
+		 * @param nmsBlockData {@link BlockChanger#getBlockData(ItemStack) getBlockData(ItemStack)} or {@link BlockChanger#getBlockData(Material) getBlockData(Material)}
+		 * @param x x coordinate of the block
+		 * @param y y coordinate of the block
+		 * @param z z coordinate of the block
+		 * @param physics 3 = applies physics, 2 = doesn't
+		 * <p><i>blockPosition</i> can be further modified with new coordinates using {@link BlockChanger#setBlockPosition(Object, Object, Object, Object)}
+		 */
 		public void setSectionBlock(Object nmsWorld, Object blockPosition, Object nmsBlockData, int x, int y, int z, boolean physics) {
 			Object nmsChunk = getChunkAt(nmsWorld, x, z);
 			int j = x & 15;
@@ -949,6 +1057,7 @@ public class BlockChanger {
 	// 1.8-1.12
 	private static class BlockDataGetterLegacy implements BlockDataRetriever {
 
+		@SuppressWarnings("deprecation")
 		@Override
 		public Object fromItemStack(ItemStack itemStack) {
 			try {
@@ -983,6 +1092,8 @@ public class BlockChanger {
 interface BlockPositionConstructor {
 
 	Object newBlockPosition(Object world, Object x, Object y, Object z);
+	Object newMutableBlockPosition(Object world, Object x, Object y, Object z);
+	Object set(Object mutableBlockPosition, Object x, Object y, Object z);
 
 }
 
@@ -999,9 +1110,14 @@ interface BlockUpdater {
 class BlockPositionNormal implements BlockPositionConstructor {
 
 	private MethodHandle blockPositionConstructor;
+	private MethodHandle mutableBlockPositionConstructor;
+	private MethodHandle mutableBlockPositionSet;
 
-	public BlockPositionNormal(MethodHandle blockPositionXYZ) {
+	public BlockPositionNormal(MethodHandle blockPositionXYZ,
+			MethodHandle mutableBlockPositionXYZ, MethodHandle mutableBlockPositionSet) {
 		this.blockPositionConstructor = blockPositionXYZ;
+		this.mutableBlockPositionConstructor = mutableBlockPositionXYZ;
+		this.mutableBlockPositionSet = mutableBlockPositionSet;
 	}
 
 	@Override
@@ -1014,20 +1130,67 @@ class BlockPositionNormal implements BlockPositionConstructor {
 		return null;
 	}
 
+	@Override
+	public Object newMutableBlockPosition(Object world, Object x, Object y, Object z) {
+		try {
+			return mutableBlockPositionConstructor.invoke(x, y, z);
+		} catch (Throwable e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
+
+	@Override
+	public Object set(Object mutableBlockPosition, Object x, Object y, Object z) {
+		try {
+			return mutableBlockPositionSet.invoke(mutableBlockPosition, x, y, z);
+		} catch (Throwable e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
+
 }
 
 class BlockPositionAncient implements BlockPositionConstructor {
 
 	private MethodHandle blockPositionConstructor;
+	private MethodHandle mutableBlockPositionConstructor;
 
-	public BlockPositionAncient(MethodHandle blockPositionXYZ) {
+	public BlockPositionAncient(MethodHandle blockPositionXYZ,
+			MethodHandle mutableBlockPositionXYZ) {
 		this.blockPositionConstructor = blockPositionXYZ;
+		this.mutableBlockPositionConstructor = mutableBlockPositionXYZ;
 	}
 
 	@Override
 	public Object newBlockPosition(Object world, Object x, Object y, Object z) {
 		try {
 			return blockPositionConstructor.invoke(world, x, y, z);
+		} catch (Throwable e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
+	
+	@Override
+	public Object newMutableBlockPosition(Object world, Object x, Object y, Object z) {
+		try {
+			return mutableBlockPositionConstructor.invoke(x, y, z);
+		} catch (Throwable e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
+
+	@Override
+	public Object set(Object mutableBlockPosition, Object x, Object y, Object z) {
+		try {
+			Location loc = (Location)mutableBlockPosition;
+			loc.setX((double)x);
+			loc.setY((double)y);
+			loc.setZ((double)z);
+			return loc;	
 		} catch (Throwable e) {
 			e.printStackTrace();
 		}
