@@ -14,6 +14,10 @@ BlockChanger.setCuboidAsynchronously(corner1, corner2, new ItemStack(Material.DI
 	// gets executed after cuboid has been filled entirely
 	Bukkit.broadcastMessage("COMPLETED!");
 });
+// Fastest method (setSection)
+BlockChanger.setSectionCuboidAsynchronously(corner1, corner2, new ItemStack(Material.GLASS), false).thenRunAsync(() -> {
+	Bukkit.broadcastMessage("COMPLETED!");
+});
 BlockChanger. // see all the methods
 ```  
 ### ToDo  
