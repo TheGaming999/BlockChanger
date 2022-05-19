@@ -8,13 +8,10 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nonnull;
@@ -30,7 +27,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitTask;
 
 /**
- * @version 1.4 Beta
+ * @version 1.4
  * @author TheGaming999
  * @apiNote 1.7 - 1.18 easy to use utility class to take advantage of different methods that allow you to change blocks at rocket speeds
  * <p>Made with the help of <a href="https://github.com/CryptoMorin/XSeries/blob/master/src/main/java/com/cryptomorin/xseries/ReflectionUtils.java">ReflectionUtils</a> by <a href="https://github.com/CryptoMorin">CryptoMorin</a></p>
@@ -252,7 +249,8 @@ public class BlockChanger {
 	}
 
 	/**
-	 * Changes block type using {@code nmsWorld.setTypeAndData(...)} and applies physics afterwards
+	 * Changes block type using native NMS world block type and data setter {@code nmsWorld.setTypeAndData(...)},
+	 * which surpasses bukkit's {@linkplain org.bukkit.block.Block#setType(Material) Block.setType(Material)} speed.
 	 * @param world world where the block is located
 	 * @param x x location point
 	 * @param y y location point
@@ -265,7 +263,8 @@ public class BlockChanger {
 	}
 
 	/**
-	 * Changes block type using {@code nmsWorld.setTypeAndData(...)} and applies physics afterwards
+	 * Changes block type using native NMS world block type and data setter {@code nmsWorld.setTypeAndData(...)},
+	 * which surpasses bukkit's {@linkplain org.bukkit.block.Block#setType(Material) Block.setType(Material)} speed.
 	 * @param world world where the block is located
 	 * @param x x location point
 	 * @param y y location point
@@ -278,7 +277,8 @@ public class BlockChanger {
 	}
 
 	/**
-	 * Changes block type using {@code nmsWorld.setTypeAndData(...)}
+	 * Changes block type using native NMS world block type and data setter {@code nmsWorld.setTypeAndData(...)},
+	 * which surpasses bukkit's {@linkplain org.bukkit.block.Block#setType(Material) Block.setType(Material)} speed.
 	 * @param world world where the block is located
 	 * @param x x location point
 	 * @param y y location point
@@ -297,14 +297,14 @@ public class BlockChanger {
 	}
 
 	/**
-	 * Changes block type using {@code nmsWorld.setTypeAndData(...)}
+	 * Changes block type using native NMS world block type and data setter {@code nmsWorld.setTypeAndData(...)},
+	 * which surpasses bukkit's {@linkplain org.bukkit.block.Block#setType(Material) Block.setType(Material)} speed.
 	 * @param world world where the block is located
 	 * @param x x location point
 	 * @param y y location point
 	 * @param z z location point
 	 * @param itemStack ItemStack to apply on the created block
 	 * @param physics whether physics such as gravity should be applied or not
-	 * @throws IllegalArgumentException if material is not perceived as a block material
 	 */
 	public static void setBlock(World world, int x, int y, int z, ItemStack itemStack, boolean physics) {
 		Object nmsWorld = getWorld(world);
@@ -314,7 +314,8 @@ public class BlockChanger {
 	}
 
 	/**
-	 * Changes block type using {@code nmsWorld.setTypeAndData(...)} and applies physics afterwards
+	 * Changes block type using native NMS world block type and data setter {@code nmsWorld.setTypeAndData(...)},
+	 * which surpasses bukkit's {@linkplain org.bukkit.block.Block#setType(Material) Block.setType(Material)} speed.
 	 * @param world world where the block is located
 	 * @param location location to put the block at
 	 * @param material block material to apply on the created block
@@ -326,19 +327,19 @@ public class BlockChanger {
 	}
 
 	/**
-	 * Changes block type using {@code nmsWorld.setTypeAndData(...)} and applies physics afterwards
+	 * Changes block type using native NMS world block type and data setter {@code nmsWorld.setTypeAndData(...)},
+	 * which surpasses bukkit's {@linkplain org.bukkit.block.Block#setType(Material) Block.setType(Material)} speed.
 	 * @param world world where the block is located
 	 * @param location location to put the block at
 	 * @param itemStack ItemStack to apply on the created block
-	 * @throws IllegalArgumentException if material is not perceived as a block material
-	 * @throws NullPointerException if the specified material has no block data assigned to it
 	 */
 	public static void setBlock(World world, Location location, ItemStack itemStack) {
 		setBlock(world, location, itemStack, true);
 	}
 
 	/**
-	 * Changes block type using {@code nmsWorld.setTypeAndData(...)}
+	 * Changes block type using native NMS world block type and data setter {@code nmsWorld.setTypeAndData(...)},
+	 * which surpasses bukkit's {@linkplain org.bukkit.block.Block#setType(Material) Block.setType(Material)} speed.
 	 * @param world world where the block is located
 	 * @param location location to put the block at
 	 * @param material block material to apply on the created block
@@ -358,13 +359,12 @@ public class BlockChanger {
 	}
 
 	/**
-	 * Changes block type using {@code nmsWorld.setTypeAndData(...)}
+	 * Changes block type using native NMS world block type and data setter {@code nmsWorld.setTypeAndData(...)},
+	 * which surpasses bukkit's {@linkplain org.bukkit.block.Block#setType(Material) Block.setType(Material)} speed.
 	 * @param world world where the block is located
 	 * @param location location to put the block at
 	 * @param itemStack ItemStack to apply on the created block
 	 * @param physics whether physics such as gravity should be applied or not
-	 * @throws IllegalArgumentException if material is not perceived as a block material
-	 * @throws NullPointerException if the specified material has no block data assigned to it
 	 */
 	public static void setBlock(World world, Location location, ItemStack itemStack, boolean physics) {
 		Object nmsWorld = getWorld(world);
@@ -374,7 +374,8 @@ public class BlockChanger {
 	}
 
 	/**
-	 * Changes block type using {@code nmsWorld.setTypeAndData(...)} and applies physics afterwards
+	 * Changes block type using native NMS world block type and data setter {@code nmsWorld.setTypeAndData(...)},
+	 * which surpasses bukkit's {@linkplain org.bukkit.block.Block#setType(Material) Block.setType(Material)} speed.
 	 * @param location location to put the block at
 	 * @param material block material to apply on the created block
 	 * @throws IllegalArgumentException if material is not perceived as a block material
@@ -385,18 +386,18 @@ public class BlockChanger {
 	}
 
 	/**
-	 * Changes block type using {@code nmsWorld.setTypeAndData(...)} and applies physics afterwards
+	 * Changes block type using native NMS world block type and data setter {@code nmsWorld.setTypeAndData(...)},
+	 * which surpasses bukkit's {@linkplain org.bukkit.block.Block#setType(Material) Block.setType(Material)} speed.
 	 * @param location location to put the block at
 	 * @param itemStack ItemStack to apply on the created block
-	 * @throws IllegalArgumentException if material is not perceived as a block material
-	 * @throws NullPointerException if the specified material has no block data assigned to it
 	 */
 	public static void setBlock(Location location, ItemStack itemStack) {
 		setBlock(location, itemStack, true);
 	}
 
 	/**
-	 * Changes block type using {@code nmsWorld.setTypeAndData(...)}
+	 * Changes block type using native NMS world block type and data setter {@code nmsWorld.setTypeAndData(...)},
+	 * which surpasses bukkit's {@linkplain org.bukkit.block.Block#setType(Material) Block.setType(Material)} speed.
 	 * @param location location to put the block at
 	 * @param material block material to apply on the created block
 	 * @param physics whether physics such as gravity should be applied or not
@@ -415,12 +416,11 @@ public class BlockChanger {
 	}
 
 	/**
-	 * Changes block type using {@code nmsWorld.setTypeAndData(...)}
+	 * Changes block type using native NMS world block type and data setter {@code nmsWorld.setTypeAndData(...)},
+	 * which surpasses bukkit's {@linkplain org.bukkit.block.Block#setType(Material) Block.setType(Material)} speed.
 	 * @param location location to put the block at
 	 * @param itemStack ItemStack to apply on the created block
 	 * @param physics whether physics such as gravity should be applied or not
-	 * @throws IllegalArgumentException if material is not perceived as a block material
-	 * @throws NullPointerException if the specified material has no block data assigned to it
 	 */
 	public static void setBlock(Location location, ItemStack itemStack, boolean physics) {
 		Object nmsWorld = getWorld(location.getWorld());
@@ -430,28 +430,32 @@ public class BlockChanger {
 	}
 
 	/**
-	 * A thread safe version of {@link #setBlock(Location, ItemStack, boolean)}
+	 * Asynchronously changes block type using native NMS world block type and data setter {@code nmsWorld.setTypeAndData(...)},
+	 * which surpasses bukkit's {@linkplain org.bukkit.block.Block#setType(Material) Block.setType(Material)} speed.
+	 * <br>
+	 * <br>Async within this context means:
+	 * <ul>
+	 * <li>There won't be any TPS loss no matter the amount of blocks being set</li>
+	 * <li>It can be safely executed inside an asynchronous task</li>
+	 * </ul>
 	 * @param location location to put the block at
 	 * @param itemStack ItemStack to apply on the created block
 	 * @param physics whether physics such as gravity should be applied or not
-	 * @throws IllegalArgumentException if material is not perceived as a block material
-	 * @throws NullPointerException if the specified material has no block data assigned to it
 	 */
 	public static CompletableFuture<Void> setBlockAsynchronously(Location location, ItemStack itemStack, boolean physics) {
-		// All NMS stuff here can be accessed asynchronously.
 		Object nmsWorld = getWorld(location.getWorld());
 		Object blockPosition = newMutableBlockPosition(location.getWorld(), location.getBlockX(), location.getBlockY(), location.getBlockZ());
 		Object blockData = getBlockData(itemStack);
 		CompletableFuture<Void> workloadFinishFuture = new CompletableFuture<>();
 		BlockSetWorkload workload = new BlockSetWorkload(nmsWorld, blockPosition, blockData, location, physics);
-		// Use global runnable, no need to spam creating threads for each block.
 		WORKLOAD_RUNNABLE.addWorkload(workload);
 		WORKLOAD_RUNNABLE.whenComplete(() -> workloadFinishFuture.complete(null));
 		return workloadFinishFuture;
 	}
 
 	/**
-	 * Retrieves nms data once, then changes the block types using {@code nmsWorld.setTypeAndData(...)}
+	 * Mass changes block types using native NMS world block type and data setter {@code nmsWorld.setTypeAndData(...)},
+	 * which surpasses bukkit's {@linkplain org.bukkit.block.Block#setType(Material) Block.setType(Material)} speed.
 	 * @param world world where the blocks are located at
 	 * @param locations locations to put the block at
 	 * @param material block material to apply on the created blocks
@@ -467,17 +471,19 @@ public class BlockChanger {
 		if (blockData == null)
 			throw new NullPointerException("Unable to retrieve block data for the corresponding material.");
 		Object blockPosition = newMutableBlockPosition(world, 0, 0, 0);
+		int applyPhysics = physics ? 3 : 2;
 		locations.forEach(location -> {
 			int x = location.getBlockX();
 			int y = location.getBlockY();
 			int z = location.getBlockZ();
 			setBlockPosition(blockPosition, x, y, z);
-			setTypeAndData(nmsWorld, blockPosition, blockData, physics ? 3 : 2);
+			setTypeAndData(nmsWorld, blockPosition, blockData, applyPhysics);
 		});
 	}
 
 	/**
-	 * Retrieves nms data once, then changes the block types using {@code nmsWorld.setTypeAndData(...)}
+	 * Mass changes block types using native NMS world block type and data setter {@code nmsWorld.setTypeAndData(...)},
+	 * which surpasses bukkit's {@linkplain org.bukkit.block.Block#setType(Material) Block.setType(Material)} speed.
 	 * @param world world where the blocks are located at
 	 * @param locations locations to put the block at
 	 * @param itemStack ItemStack to apply on the created blocks
@@ -489,17 +495,25 @@ public class BlockChanger {
 		Object nmsWorld = getWorld(world);
 		Object blockData = getBlockData(itemStack);
 		Object blockPosition = newMutableBlockPosition(world, 0, 0, 0);
+		int applyPhysics = physics ? 3 : 2;
 		locations.forEach(location -> {
 			int x = location.getBlockX();
 			int y = location.getBlockY();
 			int z = location.getBlockZ();
 			setBlockPosition(blockPosition, x, y, z);
-			setTypeAndData(nmsWorld, blockPosition, blockData, physics ? 3 : 2);
+			setTypeAndData(nmsWorld, blockPosition, blockData, applyPhysics);
 		});
 	}
 
 	/**
-	 * A thread safe version of {@link #setBlocks(World, List, ItemStack, boolean)}
+	 * Asynchronously changes block types using native NMS world block type and data setter {@code nmsWorld.setTypeAndData(...)},
+	 * which surpasses bukkit's {@linkplain org.bukkit.block.Block#setType(Material) Block.setType(Material)} speed.
+	 * <br>
+	 * <br>Async within this context means:
+	 * <ul>
+	 * <li>There won't be any TPS loss no matter the amount of blocks being set</li>
+	 * <li>It can be safely executed inside an asynchronous task</li>
+	 * </ul>
 	 * @param world world where the blocks are located at
 	 * @param locations locations to put the block at
 	 * @param itemStack ItemStack to apply on the created blocks
@@ -526,7 +540,15 @@ public class BlockChanger {
 	}
 
 	/**
-	 * Creates a cuboid from two corners with thread safety
+	 * Asynchronously fills a cuboid from a corner to another with blocks retrieved from the given ItemStack
+	 * using native NMS world block type and data setter {@code nmsWorld.setTypeAndData(...)},
+	 * which surpasses bukkit's {@linkplain org.bukkit.block.Block#setType(Material) Block.setType(Material)} speed.
+	 * <br>
+	 * <br>Async within this context means:
+	 * <ul>
+	 * <li>There won't be any TPS loss no matter the amount of blocks being set</li>
+	 * <li>It can be safely executed inside an asynchronous task</li>
+	 * </ul>
 	 * @param world world where the blocks are located at
 	 * @param loc1 first corner
 	 * @param loc2 second corner
@@ -555,13 +577,11 @@ public class BlockChanger {
 		Location location = new Location(loc1.getWorld(), baseX + x3, baseY + y3, baseZ + z3);
 		int cuboidSize = sizeX*sizeY*sizeZ;
 		Object blockPosition = newMutableBlockPosition(location);
-		AtomicReference<Location> atomicLocation = new AtomicReference<>(location);
 		CompletableFuture<Void> workloadFinishFuture = new CompletableFuture<>();
 		WorkloadRunnable workloadRunnable = new WorkloadRunnable();
 		BukkitTask workloadTask = Bukkit.getScheduler().runTaskTimer(PLUGIN, workloadRunnable, 1, 1);
 		for (int i = 0; i < cuboidSize ; i++) {
-			atomicLocation.set(location.clone());
-			BlockSetWorkload workload = new BlockSetWorkload(nmsWorld, blockPosition, blockData, atomicLocation.get(), physics);
+			BlockSetWorkload workload = new BlockSetWorkload(nmsWorld, blockPosition, blockData, location.clone(), physics);
 			if (++x3 >= sizeX) {
 				x3 = 0;
 				if (++y3 >= sizeY) {
@@ -581,64 +601,10 @@ public class BlockChanger {
 		return workloadFinishFuture;
 	}
 
-	
 	/**
-	 * Creates a cuboid from two corners with thread safety
-	 * @param world world where the blocks are located at
-	 * @param loc1 first corner
-	 * @param loc2 second corner
-	 * @param itemStack ItemStack to apply on the created blocks
-	 * @param physics whether physics such as gravity should be applied or not
-	 * @throws IllegalArgumentException if material is not perceived as a block material
-	 * @throws NullPointerException if the specified material has no block data assigned to it
-	 */
-	/*
-	public static CompletableFuture<Void> setCuboidAsynchronously2(Location loc1, Location loc2, ItemStack itemStack, boolean physics) {
-		World world = loc1.getWorld();
-		Object nmsWorld = getWorld(world);
-		Object blockData = getBlockData(itemStack);
-		int minX = Math.min(loc1.getBlockX(), loc2.getBlockX());
-		int minY = Math.min(loc1.getBlockY(), loc2.getBlockY());
-		int minZ = Math.min(loc1.getBlockZ(), loc2.getBlockZ());
-		int maxX = Math.max(loc1.getBlockX(), loc2.getBlockX());
-		int maxY = Math.max(loc1.getBlockY(), loc2.getBlockY());
-		int maxZ = Math.max(loc1.getBlockZ(), loc2.getBlockZ());
-		Vector min = new Vector(minX, minY, minZ);
-		Vector max = new Vector(maxX, maxY, maxZ);
-		/**
-		int sizeX = maxX - minX;
-		int sizeY = maxY - minY;
-		int sizeZ = maxZ - minZ;
-		 */
-	/*
-		Location location = new Location(loc1.getWorld(), 0, 0, 0);
-		Object blockPosition = newMutableBlockPosition(location);
-		CompletableFuture<Void> workloadFinishFuture = new CompletableFuture<>();
-		WorkloadRunnable workloadRunnable = new WorkloadRunnable();
-		BukkitTask workloadTask = Bukkit.getScheduler().runTaskTimer(PLUGIN, workloadRunnable, 1, 1);
-		for (int x = min.getBlockX(); x <= max.getBlockX(); x++) {
-			for (int y = min.getBlockY(); y <= max.getBlockY(); y++) {
-				for (int z = min.getBlockZ(); z <= max.getBlockZ(); z++) {
-					location.setX(x);
-					location.setY(y);
-					location.setZ(z);
-					BlockSetWorkload workload = new BlockSetWorkload(nmsWorld, blockPosition, blockData, location.clone(), physics);
-					workloadRunnable.addWorkload(workload);
-				}
-			}
-		}
-		workloadRunnable.whenComplete(() -> {
-			workloadFinishFuture.complete(null);
-			workloadTask.cancel();
-		});
-		return workloadFinishFuture;
-	}
-	*/
-
-
-	/**
-	 * Changes block type using {@code nmsChunk.setType(...)} which surpasses {@code nmsWorld.setTypeAndData(...)}
-	 * speed, then notifies the world of the updated blocks so they can be seen by the players without the need to relogin
+	 * <p>Changes block type using Chunk block setter, which in an NMS code, reads as follows {@code nmsChunk.setType(...)} which surpasses {@code nmsWorld.setTypeAndData(...)}
+	 * speed due to absence of light updates, the method that {@link #setBlock(Location, Material)} uses. Then, 
+	 * notifies the world of the updated blocks so they can be seen by the players.
 	 * @param location location to put the block at
 	 * @param material material to apply on the block
 	 */
@@ -647,8 +613,9 @@ public class BlockChanger {
 	}
 
 	/**
-	 * Changes block type using {@code nmsChunk.setType(...)} which surpasses {@code nmsWorld.setTypeAndData(...)}
-	 * speed, then notifies the world of the updated blocks so they can be seen by the players without the need to relogin
+	 * <p>Changes block type using Chunk block setter, which in an NMS code, reads as follows {@code nmsChunk.setType(...)} which surpasses {@code nmsWorld.setTypeAndData(...)}
+	 * speed due to absence of light updates, the method that {@link #setBlock(Location, ItemStack)} uses. Then, 
+	 * notifies the world of the updated blocks so they can be seen by the players.
 	 * @param location location to put the block at
 	 * @param itemStack ItemStack to apply on the block
 	 */
@@ -657,8 +624,9 @@ public class BlockChanger {
 	}
 
 	/**
-	 * Changes block type using {@code nmsChunk.setType(...)} which surpasses {@code nmsWorld.setTypeAndData(...)}
-	 * speed, then notifies the world of the updated blocks so they can be seen by the players without the need to relogin
+	 * <p>Changes block type using Chunk block setter, which in an NMS code, reads as follows {@code nmsChunk.setType(...)} which surpasses {@code nmsWorld.setTypeAndData(...)}
+	 * speed due to absence of light updates, the method that {@link #setBlock(Location, ItemStack)} uses. Then, 
+	 * notifies the world of the updated blocks so they can be seen by the players.
 	 * @param location location to put the block at
 	 * @param material material to apply on the block
 	 * @param physics whether physics should be applied or not
@@ -672,13 +640,15 @@ public class BlockChanger {
 		if (blockData == null)
 			throw new NullPointerException("Unable to retrieve block data for the corresponding material.");
 		Object chunk = getChunkAt(nmsWorld, location);
+		
 		setType(chunk, blockPosition, blockData, physics);
 		updateBlock(nmsWorld, blockPosition, blockData, physics);
 	}
 
 	/**
-	 * Changes block type using {@code nmsChunk.setType(...)} which surpasses {@code nmsWorld.setTypeAndData(...)}
-	 * speed, then notifies the world of the updated blocks so they can be seen by the players without the need to relogin
+	 * <p>Changes block type using Chunk block setter, which in an NMS code, reads as follows {@code nmsChunk.setType(...)} which surpasses {@code nmsWorld.setTypeAndData(...)}
+	 * speed due to absence of light updates, the method that {@link #setBlock(Location, ItemStack)} uses. Then, 
+	 * notifies the world of the updated blocks so they can be seen by the players.
 	 * @param location location to put the block at
 	 * @param itemStack itemStack to apply on the block
 	 * @param physics whether physics should be applied or not
@@ -688,8 +658,86 @@ public class BlockChanger {
 		Object blockPosition = newBlockPosition(location.getWorld(), location.getBlockX(), location.getBlockY(), location.getBlockZ());
 		Object blockData = getBlockData(itemStack);
 		Object chunk = getChunkAt(nmsWorld, location);
+		
 		setType(chunk, blockPosition, blockData, physics);
 		updateBlock(nmsWorld, blockPosition, blockData, physics);
+	}
+	
+	/**
+	 * As stated in {@link #setChunkBlock(Location, ItemStack, boolean)}:
+	 * <p>Changes block type using Chunk block setter, which in an NMS code, reads as follows {@code nmsChunk.setType(...)} which surpasses {@code nmsWorld.setTypeAndData(...)}
+	 * speed due to absence of light updates, the method that {@link #setBlock(Location, ItemStack)} uses. Then, 
+	 * notifies the world of the updated blocks so they can be seen by the players.
+	 * 
+	 * <p>In addition to that, it makes sure that there is no TPS loss due to the amount of blocks being changed.
+	 * @param location location to put the block at
+	 * @param itemStack itemStack to apply on the block
+	 * @param physics whether physics should be applied or not
+	 */
+	public static CompletableFuture<Void> setChunkBlockAsynchronously(Location location, ItemStack itemStack, boolean physics) {
+		Object nmsWorld = getWorld(location.getWorld());
+		Object blockPosition = newMutableBlockPosition(location.getWorld(), location.getBlockX(), location.getBlockY(), location.getBlockZ());
+		Object blockData = getBlockData(itemStack);
+		
+		CompletableFuture<Void> workloadFinishFuture = new CompletableFuture<>();
+		ChunkSetWorkload workload = new ChunkSetWorkload(nmsWorld, blockPosition, blockData, location, physics);
+		WORKLOAD_RUNNABLE.addWorkload(workload);
+		WORKLOAD_RUNNABLE.whenComplete(() -> workloadFinishFuture.complete(null));
+		return workloadFinishFuture;
+	}
+	
+	/**
+	 * Mass change blocks at the given locations using Chunk block setter which doesn't apply light updates but offers
+	 * better performance in comparison to setBlocks(...)
+	 * @param world world where the blocks are located at
+	 * @param locations locations to put the block at
+	 * @param itemStack ItemStack to apply on the created blocks
+	 * @param physics whether physics such as gravity should be applied or not
+	 * @throws IllegalArgumentException if material is not perceived as a block material
+	 * @throws NullPointerException if the specified material has no block data assigned to it
+	 */
+	public static void setChunkBlocks(World world, Collection<Location> locations, ItemStack itemStack, boolean physics) {
+		Object nmsWorld = getWorld(world);
+		Object blockData = getBlockData(itemStack);
+		Object blockPosition = newMutableBlockPosition(world, 0, 0, 0);
+		locations.forEach(location -> {
+			int x = location.getBlockX();
+			int y = location.getBlockY();
+			int z = location.getBlockZ();
+			Object chunk = getChunkAt(nmsWorld, x, z);
+			setBlockPosition(blockPosition, x, y, z);
+			setType(chunk, blockPosition, blockData, physics);
+		});
+	}
+	/**
+	 * A thread safe version of {@link #setChunkBlocks(World, Collection, ItemStack, boolean)}*
+	 * <p>* Mass change blocks at the given locations using Chunk block setter which doesn't apply light updates but offers
+	 * better performance in comparison to setBlocks(...). 
+	 * <p>With an eye on the server TPS, this method won't degrade the server performance regardless of the 
+	 * amount of blocks being changed in contrast to the regular one.
+	 * @param world world where the blocks are located at
+	 * @param locations locations to put the block at
+	 * @param itemStack ItemStack to apply on the created blocks
+	 * @param physics whether physics such as gravity should be applied or not
+	 * @throws IllegalArgumentException if material is not perceived as a block material
+	 * @throws NullPointerException if the specified material has no block data assigned to it
+	 */
+	public static CompletableFuture<Void> setChunkBlocksAsynchronously(World world, Collection<Location> locations, ItemStack itemStack, boolean physics) {
+		Object nmsWorld = getWorld(world);
+		Object blockData = getBlockData(itemStack);
+		Object blockPosition = newMutableBlockPosition(world, 0, 0, 0);
+		CompletableFuture<Void> workloadFinishFuture = new CompletableFuture<>();
+		WorkloadRunnable workloadRunnable = new WorkloadRunnable();
+		BukkitTask workloadTask = Bukkit.getScheduler().runTaskTimer(PLUGIN, workloadRunnable, 1, 1);
+		locations.forEach(location -> {
+			ChunkSetWorkload workload = new ChunkSetWorkload(nmsWorld, blockPosition, blockData, location, physics);
+			workloadRunnable.addWorkload(workload);
+		});
+		workloadRunnable.whenComplete(() -> {
+			workloadFinishFuture.complete(null);
+			workloadTask.cancel();
+		});
+		return workloadFinishFuture;
 	}
 
 	/**
@@ -767,6 +815,27 @@ public class BlockChanger {
 		Object blockPosition = newBlockPosition(world, x, y, z);
 		updateBlock(nmsWorld, blockPosition, blockData, physics);
 	}
+	
+	/**
+	 * Changes block type using {@code chunkSection.setType(...)} which is superior to {@code nmsChunk.setType(...)} and 
+	 * {@code nmsWorld.setTypeAndData(...)} in terms of speed due to the absence of extensive checks, then notifies the world of the updated blocks so they can be seen by the players without the need to relogin
+	 * @param location location to put the block at
+	 * @param itemStack ItemStack to apply on the block
+	 * @param physics whether physics should be applied or not
+	 */
+	public static CompletableFuture<Void> setSectionBlockAsynchronously(Location location, ItemStack itemStack, boolean physics) {
+		World world = location.getWorld();
+		Object nmsWorld = getWorld(world);
+		Object blockData = getBlockData(itemStack);
+		Object blockPosition = newMutableBlockPosition(world, 0, 0, 0);
+		if (blockData == null)
+			throw new NullPointerException("Unable to retrieve block data for the corresponding material.");
+		CompletableFuture<Void> workloadFinishFuture = new CompletableFuture<Void>();
+		SectionSetWorkload workload = new SectionSetWorkload(nmsWorld, blockPosition, blockData, location, physics);
+		WORKLOAD_RUNNABLE.addWorkload(workload);
+		WORKLOAD_RUNNABLE.whenComplete(() -> workloadFinishFuture.complete(null));
+		return workloadFinishFuture;
+	}
 
 	/**
 	 * Performs {@link #setSectionBlock(Location, Material)} but after storing the block data and the world as nms objects, so they can
@@ -775,7 +844,7 @@ public class BlockChanger {
 	 * @param material material to apply on the blocks
 	 * @param world world where locations are taken from
 	 */
-	public static void setSectionBlocks(World world, List<Location> locations, Material material) {
+	public static void setSectionBlocks(World world, Collection<Location> locations, Material material) {
 		if (!material.isBlock()) 
 			throw new IllegalArgumentException("The specified material is not a placeable block!");
 		Object nmsWorld = getWorld(world);
@@ -806,7 +875,7 @@ public class BlockChanger {
 	 * @param itemStack ItemStack to apply on the blocks
 	 * @param world world where locations are taken from
 	 */
-	public static void setSectionBlocks(World world, List<Location> locations, ItemStack itemStack) {
+	public static void setSectionBlocks(World world, Collection<Location> locations, ItemStack itemStack) {
 		Object nmsWorld = getWorld(world);
 		Object blockData = getBlockData(itemStack);
 		Object blockPosition = newMutableBlockPosition(world, 0, 0, 0);
@@ -825,6 +894,31 @@ public class BlockChanger {
 			updateBlock(nmsWorld, blockPosition, blockData, false);
 		});
 	}
+	
+	/**
+	 * Performs {@link #setSectionBlock(Location, ItemStack)} but after storing the block data and the world as nms objects, so they can
+	 * be used again and again instead of retrieving them every time a block gets set.
+	 * @param locations locations to put the blocks at
+	 * @param itemStack ItemStack to apply on the blocks
+	 * @param world world where locations are taken from
+	 */
+	public static CompletableFuture<Void> setSectionBlocksAsynchronously(World world, Collection<Location> locations, ItemStack itemStack) {
+		Object nmsWorld = getWorld(world);
+		Object blockData = getBlockData(itemStack);
+		Object blockPosition = newMutableBlockPosition(world, 0, 0, 0);
+		CompletableFuture<Void> workloadFinishFuture = new CompletableFuture<>();
+		WorkloadRunnable workloadRunnable = new WorkloadRunnable();
+		BukkitTask workloadTask = Bukkit.getScheduler().runTaskTimer(PLUGIN, workloadRunnable, 1, 1);
+		locations.forEach(location -> {
+			SectionSetWorkload workload = new SectionSetWorkload(nmsWorld, blockPosition, blockData, location, false);
+			workloadRunnable.addWorkload(workload);
+		});
+		workloadRunnable.whenComplete(() -> {
+			workloadFinishFuture.complete(null);
+			workloadTask.cancel();
+		});
+		return workloadFinishFuture;
+	}
 
 	/**
 	 * Has the same behavior as {@link #setSectionBlocks(World, Location, Material)} but creates a cuboid from a location
@@ -834,6 +928,17 @@ public class BlockChanger {
 	 * @param material material to apply on the blocks
 	 */
 	public static void setSectionCuboid(Location loc1, Location loc2, Material material) {
+		setSectionCuboid(loc1, loc2, material, false);
+	}
+	
+	/**
+	 * Has the same behavior as {@link #setSectionBlocks(World, Location, Material)} but creates a cuboid from a location
+	 * to another location similar to the vanilla command <b>/fill</b>
+	 * @param loc1 point 1
+	 * @param loc2 point 2
+	 * @param material material to apply on the blocks
+	 */
+	public static void setSectionCuboid(Location loc1, Location loc2, Material material, boolean physics) {
 		if (!material.isBlock()) 
 			throw new IllegalArgumentException("The specified material is not a placeable block!");
 		World world = loc1.getWorld();
@@ -869,7 +974,7 @@ public class BlockChanger {
 			Object section = getSection(nmsChunk, sections, y);
 			setTypeChunkSection(section, j, k, l, blockData);
 			setBlockPosition(blockPosition, x, y, z);
-			updateBlock(nmsWorld, blockPosition, blockData, false);
+			updateBlock(nmsWorld, blockPosition, blockData, physics);
 			if (++x3 >= sizeX) {
 				x3 = 0;
 				if (++y3 >= sizeY) {
@@ -891,6 +996,17 @@ public class BlockChanger {
 	 * @param itemStack ItemStack to apply on the blocks
 	 */
 	public static void setSectionCuboid(Location loc1, Location loc2, ItemStack itemStack) {
+		setSectionCuboid(loc1, loc2, itemStack, false);
+	}
+	
+	/**
+	 * Has the same behavior as {@link #setSectionBlocks(World, Location, ItemStack)} but creates a cuboid from a location
+	 * to another location similar to the vanilla command <b>/fill</b>
+	 * @param loc1 point 1
+	 * @param loc2 point 2
+	 * @param itemStack ItemStack to apply on the blocks
+	 */
+	public static void setSectionCuboid(Location loc1, Location loc2, ItemStack itemStack, boolean physics) {
 		World world = loc1.getWorld();
 		Object nmsWorld = getWorld(world);
 		Object blockData = getBlockData(itemStack);
@@ -922,7 +1038,7 @@ public class BlockChanger {
 			Object section = getSection(nmsChunk, sections, y);
 			setTypeChunkSection(section, j, k, l, blockData);
 			setBlockPosition(blockPosition, x, y, z);
-			updateBlock(nmsWorld, blockPosition, blockData, false);
+			updateBlock(nmsWorld, blockPosition, blockData, physics);
 			if (++x3 >= sizeX) {
 				x3 = 0;
 				if (++y3 >= sizeY) {
@@ -934,6 +1050,68 @@ public class BlockChanger {
 			location.setY(baseY + y3);
 			location.setZ(baseZ + z3);
 		}
+	}
+	
+	/**
+	 * Has the same behavior as {@link #setSectionBlocks(World, Location, ItemStack)} but asynchronously creates a cuboid from a location
+	 * to another location similar to the vanilla command <b>/fill</b>
+	 * @param loc1 point 1
+	 * @param loc2 point 2
+	 * @param itemStack ItemStack to apply on the blocks
+	 */
+	public static CompletableFuture<Void> setSectionCuboidAsynchronously(Location loc1, Location loc2, ItemStack itemStack) {
+		return setSectionCuboidAsynchronously(loc1, loc2, itemStack, false);
+	}
+	
+	/**
+	 * Has the same behavior as {@link #setSectionBlocks(World, Location, ItemStack)} but asynchronously creates a cuboid from a location
+	 * to another location similar to the vanilla command <b>/fill</b>
+	 * @param loc1 point 1
+	 * @param loc2 point 2
+	 * @param itemStack ItemStack to apply on the blocks
+	 */
+	public static CompletableFuture<Void> setSectionCuboidAsynchronously(Location loc1, Location loc2, ItemStack itemStack, boolean physics) {
+		World world = loc1.getWorld();
+		Object nmsWorld = getWorld(world);
+		Object blockData = getBlockData(itemStack);
+		int x1 = Math.min(loc1.getBlockX(), loc2.getBlockX());
+		int y1 = Math.min(loc1.getBlockY(), loc2.getBlockY());
+		int z1 = Math.min(loc1.getBlockZ(), loc2.getBlockZ());
+		int x2 = Math.max(loc1.getBlockX(), loc2.getBlockX());
+		int y2 = Math.max(loc1.getBlockY(), loc2.getBlockY());
+		int z2 = Math.max(loc1.getBlockZ(), loc2.getBlockZ());
+		int baseX = x1;
+		int baseY = y1;
+		int baseZ = z1;
+		int sizeX = Math.abs(x2 - x1) + 1;
+		int sizeY = Math.abs(y2 - y1) + 1;
+		int sizeZ = Math.abs(z2 - z1) + 1;
+		int x3 = 0, y3 = 0, z3 = 0;
+		Location location = new Location(loc1.getWorld(), baseX + x3, baseY + y3, baseZ + z3);
+		int cuboidSize = sizeX*sizeY*sizeZ;
+		Object blockPosition = newMutableBlockPosition(location);
+		CompletableFuture<Void> workloadFinishFuture = new CompletableFuture<>();
+		WorkloadRunnable workloadRunnable = new WorkloadRunnable();
+		BukkitTask workloadTask = Bukkit.getScheduler().runTaskTimer(PLUGIN, workloadRunnable, 1, 1);
+		for (int i = 0; i < cuboidSize ; i++) {
+			SectionSetWorkload workload = new SectionSetWorkload(nmsWorld, blockPosition, blockData, location.clone(), physics);
+			if (++x3 >= sizeX) {
+				x3 = 0;
+				if (++y3 >= sizeY) {
+					y3 = 0;
+					++z3;
+				}
+			}
+			location.setX(baseX + x3);
+			location.setY(baseY + y3);
+			location.setZ(baseZ + z3);
+			workloadRunnable.addWorkload(workload);
+		}
+		workloadRunnable.whenComplete(() -> {
+			workloadFinishFuture.complete(null);
+			workloadTask.cancel();
+		});
+		return workloadFinishFuture;
 	}
 
 	private static Object getSection(Object nmsChunk, Object[] sections, int y) {
@@ -957,7 +1135,7 @@ public class BlockChanger {
 		}
 	}
 
-	static void setTypeAndData(Object nmsWorld, Object blockPosition, Object blockData, int physics) {
+	private static void setTypeAndData(Object nmsWorld, Object blockPosition, Object blockData, int physics) {
 		try {
 			SET_TYPE_AND_DATA.invoke(nmsWorld, blockPosition, blockData, physics);
 		} catch (Throwable e) {
@@ -1256,6 +1434,144 @@ public class BlockChanger {
 				e.printStackTrace();
 			}
 			return null;
+		}
+
+	}
+	
+	private static interface Workload {
+
+		boolean compute();
+
+	}
+
+	private static class WorkloadRunnable implements Runnable {
+
+		private static final double MAX_MILLIS_PER_TICK = 10.0;
+		private static final int MAX_NANOS_PER_TICK = (int) (MAX_MILLIS_PER_TICK * 1E6);
+
+		private final Deque<Workload> workloadDeque = new ArrayDeque<>();
+
+		public void addWorkload(Workload workload) {
+			this.workloadDeque.add(workload);
+		}
+
+		public void whenComplete(Runnable runnable) {
+			WhenCompleteWorkload workload = new WhenCompleteWorkload(runnable);
+			this.workloadDeque.add(workload);
+		}
+
+		@Override
+		public void run() {
+			long stopTime = System.nanoTime() + MAX_NANOS_PER_TICK;
+
+			Workload nextLoad;
+
+			while (System.nanoTime() <= stopTime && (nextLoad = this.workloadDeque.poll()) != null) {
+				nextLoad.compute();
+			}
+		}
+
+	}
+
+	private static class BlockSetWorkload implements Workload {
+
+		private Object nmsWorld;
+		private Object blockPosition;
+		private Object blockData;
+		private Location location;
+		private int physics;
+
+		public BlockSetWorkload(Object nmsWorld, Object blockPosition, Object blockData, Location location, boolean physics) {
+			this.nmsWorld = nmsWorld;
+			this.blockPosition = blockPosition;
+			this.blockData = blockData;
+			this.location = location;
+			this.physics = physics ? 3 : 2;
+		}
+
+		@Override
+		public boolean compute() {
+			BlockChanger.setBlockPosition(blockPosition, location.getBlockX(), location.getBlockY(), location.getBlockZ());
+			BlockChanger.setTypeAndData(nmsWorld, blockPosition, blockData, physics);
+			return true;
+		}
+
+	}
+
+	private static class ChunkSetWorkload implements Workload {
+
+		private Object nmsWorld;
+		private Object blockPosition;
+		private Object blockData;
+		private Location location;
+		private boolean physics;
+
+		public ChunkSetWorkload(Object nmsWorld, Object blockPosition, Object blockData, Location location, boolean physics) {
+			this.nmsWorld = nmsWorld;
+			this.blockPosition = blockPosition;
+			this.blockData = blockData;
+			this.location = location;
+			this.physics = physics;
+		}
+
+		@Override
+		public boolean compute() {
+			BlockChanger.setBlockPosition(blockPosition, location.getBlockX(), location.getBlockY(), location.getBlockZ());
+			Object chunk = BlockChanger.getChunkAt(nmsWorld, location.getBlockX(), location.getBlockZ());
+			BlockChanger.setType(chunk, blockPosition, blockData, physics);
+			BlockChanger.updateBlock(nmsWorld, blockPosition, blockData, physics);
+			return true;
+		}
+
+	}
+
+	private static class SectionSetWorkload implements Workload {
+
+		private Object nmsWorld;
+		private Object blockPosition;
+		private Object blockData;
+		private Location location;
+		private boolean physics;
+
+		public SectionSetWorkload(Object nmsWorld, Object blockPosition, Object blockData, Location location, boolean physics) {
+			this.nmsWorld = nmsWorld;
+			this.blockPosition = blockPosition;
+			this.blockData = blockData;
+			this.location = location;
+			this.physics = physics;
+		}
+
+		@Override
+		public boolean compute() {
+			BlockChanger.setBlockPosition(blockPosition, location.getBlockX(), location.getBlockY(), location.getBlockZ());
+			int x = location.getBlockX();
+			int y = location.getBlockY();
+			int z = location.getBlockZ();
+			Object nmsChunk = BlockChanger.getChunkAt(nmsWorld, x, z);
+			int j = x & 15;
+			int k = y & 15;
+			int l = z & 15;
+			Object[] sections = BlockChanger.getSections(nmsChunk);
+			Object section = BlockChanger.getSection(nmsChunk, sections, y);
+			BlockChanger.setTypeChunkSection(section, j, k, l, blockData);
+			BlockChanger.updateBlock(nmsWorld, blockPosition, blockData, physics);
+			return true;
+		}
+
+	}
+
+	private static class WhenCompleteWorkload implements Workload {
+
+		private Runnable runnable;
+
+		public WhenCompleteWorkload(Runnable runnable) {
+			this.runnable = runnable;
+		}
+
+		@Override
+		public boolean compute() {
+			runnable.run();
+			return false;
 		}
 
 	}
@@ -1709,106 +2025,6 @@ class BlockUpdaterLatest implements BlockUpdater {
 			e.printStackTrace();
 		}
 		return -1;
-	}
-
-}
-
-interface Workload {
-
-	boolean compute();
-
-	default boolean shouldBeRescheduled() {
-		return false;
-	}
-
-	default boolean computeThenCheckForScheduling() {
-		this.compute();
-		return !this.shouldBeRescheduled();
-	}
-
-}
-
-class WorkloadTask implements Runnable {
-
-	private final List<Workload> workloads = new LinkedList<>();
-
-	public void addWorkload(final Workload workload) {
-		this.workloads.add(workload);
-	}
-
-	@Override
-	public void run() {
-		this.workloads.removeIf(Workload::computeThenCheckForScheduling);
-	}
-
-}
-
-class WorkloadRunnable implements Runnable {
-
-	private static final double MAX_MILLIS_PER_TICK = 10.0;
-	private static final int MAX_NANOS_PER_TICK = (int) (MAX_MILLIS_PER_TICK * 1E6);
-
-	private final Deque<Workload> workloadDeque = new ArrayDeque<>();
-
-	public void addWorkload(Workload workload) {
-		this.workloadDeque.add(workload);
-	}
-
-	public void whenComplete(Runnable runnable) {
-		WhenCompleteWorkload workload = new WhenCompleteWorkload(runnable);
-		this.workloadDeque.add(workload);
-	}
-
-	@Override
-	public void run() {
-		long stopTime = System.nanoTime() + MAX_NANOS_PER_TICK;
-
-		Workload nextLoad;
-
-		while (System.nanoTime() <= stopTime && (nextLoad = this.workloadDeque.poll()) != null) {
-			nextLoad.compute();
-		}
-	}
-
-}
-
-class BlockSetWorkload implements Workload {
-
-	private Object nmsWorld;
-	private Object blockPosition;
-	private Object blockData;
-	private Location location;
-	private boolean physics;
-
-	public BlockSetWorkload(Object nmsWorld, Object blockPosition, Object blockData, Location location, boolean physics) {
-		this.nmsWorld = nmsWorld;
-		this.blockPosition = blockPosition;
-		this.blockData = blockData;
-		this.location = location;
-		this.physics = physics;
-	}
-
-	@Override
-	public boolean compute() {
-		BlockChanger.setBlockPosition(blockPosition, location.getBlockX(), location.getBlockY(), location.getBlockZ());
-		BlockChanger.setTypeAndData(nmsWorld, blockPosition, blockData, physics ? 3 : 2);
-		return true;
-	}
-
-}
-
-class WhenCompleteWorkload implements Workload {
-
-	private Runnable runnable;
-
-	public WhenCompleteWorkload(Runnable runnable) {
-		this.runnable = runnable;
-	}
-
-	@Override
-	public boolean compute() {
-		runnable.run();
-		return false;
 	}
 
 }
