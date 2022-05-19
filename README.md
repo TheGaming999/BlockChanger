@@ -9,7 +9,8 @@ Player player = ...
 BlockChanger.setBlock(player.getLocation(), Material.GOLD_BLOCK);
 BlockChanger.setBlock(player.getLocation(), new ItemStack(Material.GOLD_BLOCK));
 // Use async methods
-BlockChanger.setCuboidAsynchronously(// corner no.1, // corner no.2, itemStack, false).thenRun(() -> {
+// corner1 and corner2 are locations ofc.
+BlockChanger.setCuboidAsynchronously(corner1, corner2, new ItemStack(Material.DIAMOND_BLOCK), false).thenRun(() -> {
 	// gets executed after cuboid has been filled entirely
 	Bukkit.broadcastMessage("COMPLETED!");
 });
