@@ -27,7 +27,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitTask;
 
 /**
- * @version 1.4
+ * @version 1.4.1
  * @author TheGaming999
  * @apiNote 1.7 - 1.18 easy to use utility class to take advantage of different methods that allow you to change blocks at rocket speeds
  * <p>Made with the help of <a href="https://github.com/CryptoMorin/XSeries/blob/master/src/main/java/com/cryptomorin/xseries/ReflectionUtils.java">ReflectionUtils</a> by <a href="https://github.com/CryptoMorin">CryptoMorin</a></p>
@@ -73,6 +73,7 @@ public class BlockChanger {
 	private final static UncheckedSetters UNCHECKED_SETTERS;
 	private final static WorkloadRunnable WORKLOAD_RUNNABLE;
 	private final static JavaPlugin PLUGIN;
+	private final static Object AIR_BLOCKDATA;
 
 	static {
 
@@ -90,6 +91,14 @@ public class BlockChanger {
 		Class<?> levelHeightAccessor = ReflectionUtils.supports(17) ? ReflectionUtils.getNMSClass("world.level.LevelHeightAccessor") : null;
 
 		MethodHandles.Lookup lookup = MethodHandles.lookup();
+		Object airBlockData = null;
+		try {
+			airBlockData = lookup.findStatic(block, ReflectionUtils.supports(18) ? "a" : "getByCombinedId", MethodType.methodType(blockData, int.class))
+					.invoke((int)0);
+		} catch (Throwable e1) {
+			e1.printStackTrace();
+		}
+		AIR_BLOCKDATA = airBlockData;
 
 		MethodHandle worldGetHandle = null;
 		MethodHandle blockPositionXYZ = null;
@@ -208,6 +217,8 @@ public class BlockChanger {
 		Arrays.stream(Material.values())
 		.filter(Material::isBlock)
 		.forEach(BlockChanger::addNMSBlockData);
+
+		NMS_BLOCK_MATERIALS.put(Material.AIR, AIR_BLOCKDATA);
 
 		AVAILABLE_BLOCKS = String.join(", ", NMS_BLOCK_MATERIALS.keySet().stream()
 				.map(Material::name)
@@ -574,7 +585,7 @@ public class BlockChanger {
 		int sizeY = Math.abs(y2 - y1) + 1;
 		int sizeZ = Math.abs(z2 - z1) + 1;
 		int x3 = 0, y3 = 0, z3 = 0;
-		Location location = new Location(loc1.getWorld(), baseX + x3, baseY + y3, baseZ + z3);
+		Location location = new Location(world, baseX + x3, baseY + y3, baseZ + z3);
 		int cuboidSize = sizeX*sizeY*sizeZ;
 		Object blockPosition = newMutableBlockPosition(location);
 		CompletableFuture<Void> workloadFinishFuture = new CompletableFuture<>();
@@ -640,7 +651,7 @@ public class BlockChanger {
 		if (blockData == null)
 			throw new NullPointerException("Unable to retrieve block data for the corresponding material.");
 		Object chunk = getChunkAt(nmsWorld, location);
-		
+
 		setType(chunk, blockPosition, blockData, physics);
 		updateBlock(nmsWorld, blockPosition, blockData, physics);
 	}
@@ -658,11 +669,11 @@ public class BlockChanger {
 		Object blockPosition = newBlockPosition(location.getWorld(), location.getBlockX(), location.getBlockY(), location.getBlockZ());
 		Object blockData = getBlockData(itemStack);
 		Object chunk = getChunkAt(nmsWorld, location);
-		
+
 		setType(chunk, blockPosition, blockData, physics);
 		updateBlock(nmsWorld, blockPosition, blockData, physics);
 	}
-	
+
 	/**
 	 * As stated in {@link #setChunkBlock(Location, ItemStack, boolean)}:
 	 * <p>Changes block type using Chunk block setter, which in an NMS code, reads as follows {@code nmsChunk.setType(...)} which surpasses {@code nmsWorld.setTypeAndData(...)}
@@ -678,14 +689,14 @@ public class BlockChanger {
 		Object nmsWorld = getWorld(location.getWorld());
 		Object blockPosition = newMutableBlockPosition(location.getWorld(), location.getBlockX(), location.getBlockY(), location.getBlockZ());
 		Object blockData = getBlockData(itemStack);
-		
+
 		CompletableFuture<Void> workloadFinishFuture = new CompletableFuture<>();
 		ChunkSetWorkload workload = new ChunkSetWorkload(nmsWorld, blockPosition, blockData, location, physics);
 		WORKLOAD_RUNNABLE.addWorkload(workload);
 		WORKLOAD_RUNNABLE.whenComplete(() -> workloadFinishFuture.complete(null));
 		return workloadFinishFuture;
 	}
-	
+
 	/**
 	 * Mass change blocks at the given locations using Chunk block setter which doesn't apply light updates but offers
 	 * better performance in comparison to setBlocks(...)
@@ -815,7 +826,7 @@ public class BlockChanger {
 		Object blockPosition = newBlockPosition(world, x, y, z);
 		updateBlock(nmsWorld, blockPosition, blockData, physics);
 	}
-	
+
 	/**
 	 * Changes block type using {@code chunkSection.setType(...)} which is superior to {@code nmsChunk.setType(...)} and 
 	 * {@code nmsWorld.setTypeAndData(...)} in terms of speed due to the absence of extensive checks, then notifies the world of the updated blocks so they can be seen by the players without the need to relogin
@@ -894,7 +905,7 @@ public class BlockChanger {
 			updateBlock(nmsWorld, blockPosition, blockData, false);
 		});
 	}
-	
+
 	/**
 	 * Performs {@link #setSectionBlock(Location, ItemStack)} but after storing the block data and the world as nms objects, so they can
 	 * be used again and again instead of retrieving them every time a block gets set.
@@ -930,13 +941,14 @@ public class BlockChanger {
 	public static void setSectionCuboid(Location loc1, Location loc2, Material material) {
 		setSectionCuboid(loc1, loc2, material, false);
 	}
-	
+
 	/**
 	 * Has the same behavior as {@link #setSectionBlocks(World, Location, Material)} but creates a cuboid from a location
 	 * to another location similar to the vanilla command <b>/fill</b>
 	 * @param loc1 point 1
 	 * @param loc2 point 2
 	 * @param material material to apply on the blocks
+	 * @param physics whether to apply physics or not
 	 */
 	public static void setSectionCuboid(Location loc1, Location loc2, Material material, boolean physics) {
 		if (!material.isBlock()) 
@@ -998,7 +1010,7 @@ public class BlockChanger {
 	public static void setSectionCuboid(Location loc1, Location loc2, ItemStack itemStack) {
 		setSectionCuboid(loc1, loc2, itemStack, false);
 	}
-	
+
 	/**
 	 * Has the same behavior as {@link #setSectionBlocks(World, Location, ItemStack)} but creates a cuboid from a location
 	 * to another location similar to the vanilla command <b>/fill</b>
@@ -1051,7 +1063,7 @@ public class BlockChanger {
 			location.setZ(baseZ + z3);
 		}
 	}
-	
+
 	/**
 	 * Has the same behavior as {@link #setSectionBlocks(World, Location, ItemStack)} but asynchronously creates a cuboid from a location
 	 * to another location similar to the vanilla command <b>/fill</b>
@@ -1062,7 +1074,7 @@ public class BlockChanger {
 	public static CompletableFuture<Void> setSectionCuboidAsynchronously(Location loc1, Location loc2, ItemStack itemStack) {
 		return setSectionCuboidAsynchronously(loc1, loc2, itemStack, false);
 	}
-	
+
 	/**
 	 * Has the same behavior as {@link #setSectionBlocks(World, Location, ItemStack)} but asynchronously creates a cuboid from a location
 	 * to another location similar to the vanilla command <b>/fill</b>
@@ -1202,7 +1214,7 @@ public class BlockChanger {
 
 	/**
 	 * 
-	 * @param world can be null for versions 1.8+
+	 * @param world (Bukkit world) can be null for versions 1.8+
 	 * @param x point
 	 * @param y point
 	 * @param z point
@@ -1219,7 +1231,7 @@ public class BlockChanger {
 
 	/**
 	 * 
-	 * @param world can be null for 1.8+
+	 * @param world (Bukkit world) can be null for 1.8+
 	 * @param x x pos
 	 * @param y y pos
 	 * @param z z pos
@@ -1381,6 +1393,7 @@ public class BlockChanger {
 
 		default Object getNMSItem(ItemStack itemStack) throws Throwable {
 			if(itemStack == null) throw new NullPointerException("ItemStack is null!");
+			if(itemStack.getType() == Material.AIR) return null;
 			Object nmsItemStack = NMS_ITEM_STACK_COPY.invoke(itemStack);
 			if (nmsItemStack == null) throw new IllegalArgumentException("Failed to get NMS ItemStack!");
 			return NMS_ITEM_STACK_TO_ITEM.invoke(nmsItemStack);
@@ -1412,7 +1425,9 @@ public class BlockChanger {
 		@Override
 		public Object fromItemStack(ItemStack itemStack) {
 			try {
-				Object block = NMS_BLOCK_FROM_ITEM.invoke(getNMSItem(itemStack));
+				Object nmsItem = getNMSItem(itemStack);
+				if(nmsItem == null) return AIR_BLOCKDATA;
+				Object block = NMS_BLOCK_FROM_ITEM.invoke(nmsItem);
 				short data = itemStack.getDurability();
 				return data > 0 ? BLOCK_DATA_FROM_LEGACY_DATA.invoke(block, data) : ITEM_TO_BLOCK_DATA.invoke(block);
 			} catch (Throwable e) {
@@ -1429,7 +1444,9 @@ public class BlockChanger {
 		@Override
 		public Object fromItemStack(ItemStack itemStack) {
 			try {
-				return NMS_BLOCK_FROM_ITEM.invoke(getNMSItem(itemStack));
+				Object nmsItem = getNMSItem(itemStack);
+				if(nmsItem == null) return AIR_BLOCKDATA;
+				return NMS_BLOCK_FROM_ITEM.invoke(nmsItem);
 			} catch (Throwable e) {
 				e.printStackTrace();
 			}
@@ -1437,7 +1454,7 @@ public class BlockChanger {
 		}
 
 	}
-	
+
 	private static interface Workload {
 
 		boolean compute();
