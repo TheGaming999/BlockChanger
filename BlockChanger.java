@@ -3,6 +3,7 @@ package me.blockchanger;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
+import java.lang.reflect.Method;
 import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.Collection;
@@ -21,15 +22,16 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitTask;
 
 /**
- * @version 1.4.1
+ * @version 1.5
  * @author TheGaming999
- * @apiNote 1.7 - 1.18 easy to use utility class to take advantage of different methods that allow you to change blocks at rocket speeds
+ * @apiNote 1.7 - 1.18 easy to use class to take advantage of different methods that allow you to change blocks at rocket speeds
  * <p>Made with the help of <a href="https://github.com/CryptoMorin/XSeries/blob/master/src/main/java/com/cryptomorin/xseries/ReflectionUtils.java">ReflectionUtils</a> by <a href="https://github.com/CryptoMorin">CryptoMorin</a></p>
  * <p>Uses the methods found <a href="https://www.spigotmc.org/threads/395868/">here</a> by <a href="https://www.spigotmc.org/members/220001/">NascentNova</a></p>
  * <p>Async methods were made using <a href="https://www.spigotmc.org/threads/409003/">How to handle heavy splittable tasks</a> by <a href="https://www.spigotmc.org/members/43809/">7smile7</a></p>
@@ -66,19 +68,31 @@ public class BlockChanger {
 	private final static MethodHandle CHUNK_SECTION;
 	private final static MethodHandle CHUNK_SET_TYPE;
 	private final static MethodHandle BLOCK_NOTIFY;
+	// 1.13+ private final static MethodHandle CRAFT_BLOCK_GET_NMS;
+	private final static MethodHandle CRAFT_BLOCK_GET_NMS_BLOCK;
+	private final static MethodHandle NMS_BLOCK_GET_BLOCK_DATA;
+	private final static MethodHandle WORLD_REMOVE_TILE_ENTITY;
+	private final static MethodHandle WORLD_CAPTURED_TILE_ENTITIES;
+	private final static MethodHandle IS_TILE_ENTITY;
 	private final static BlockUpdater BLOCK_UPDATER;
 	private final static BlockPositionConstructor BLOCK_POSITION_CONSTRUCTOR;
 	private final static BlockDataRetriever BLOCK_DATA_GETTER;
+	private final static TileEntityManager TILE_ENTITY_MANAGER;
 	private final static String AVAILABLE_BLOCKS;
 	private final static UncheckedSetters UNCHECKED_SETTERS;
 	private final static WorkloadRunnable WORKLOAD_RUNNABLE;
 	private final static JavaPlugin PLUGIN;
-	private final static Object AIR_BLOCKDATA;
+	private final static Object AIR_BLOCK_DATA;
+
+	// 1.13+ -> { [PUBLIC] [IBlockData] getNMS() }
+	// 1.7+ -> { [PRIVATE] [Block] getNMSBlock() -> [PUBLIC] [IBlockData] getBlockData() } 
 
 	static {
 
 		Class<?> worldServer = ReflectionUtils.getNMSClass("server.level", "WorldServer");
+		Class<?> world = ReflectionUtils.getNMSClass("world.level", "World");
 		Class<?> craftWorld = ReflectionUtils.getCraftClass("CraftWorld");
+		Class<?> craftBlock = ReflectionUtils.getCraftClass("block.CraftBlock");
 		Class<?> blockPosition = ReflectionUtils.supports(8) ? ReflectionUtils.getNMSClass("core", "BlockPosition") : null;
 		Class<?> mutableBlockPosition = ReflectionUtils.supports(8) ? ReflectionUtils.getNMSClass("core", "BlockPosition$MutableBlockPosition") : null;
 		Class<?> blockData = ReflectionUtils.supports(8) ? ReflectionUtils.getNMSClass("world.level.block.state", "IBlockData") : null;
@@ -89,8 +103,21 @@ public class BlockChanger {
 		Class<?> chunk = ReflectionUtils.getNMSClass("world.level.chunk", "Chunk");
 		Class<?> chunkSection = ReflectionUtils.getNMSClass("world.level.chunk", "ChunkSection");
 		Class<?> levelHeightAccessor = ReflectionUtils.supports(17) ? ReflectionUtils.getNMSClass("world.level.LevelHeightAccessor") : null;
+		Class<?> blockDataReference = ReflectionUtils.supports(13) ? craftBlock : block;
+		
+		Method getNMSBlockMethod = null;
+
+		if(ReflectionUtils.VER <= 12) {
+			try {
+				getNMSBlockMethod = craftBlock.getDeclaredMethod("getNMSBlock");
+				getNMSBlockMethod.setAccessible(true);
+			} catch (NoSuchMethodException | SecurityException e2) {
+				e2.printStackTrace();
+			}
+		}
 
 		MethodHandles.Lookup lookup = MethodHandles.lookup();
+
 		Object airBlockData = null;
 		try {
 			airBlockData = lookup.findStatic(block, ReflectionUtils.supports(18) ? "a" : "getByCombinedId", MethodType.methodType(blockData, int.class))
@@ -98,7 +125,7 @@ public class BlockChanger {
 		} catch (Throwable e1) {
 			e1.printStackTrace();
 		}
-		AIR_BLOCKDATA = airBlockData;
+		AIR_BLOCK_DATA = airBlockData;
 
 		MethodHandle worldGetHandle = null;
 		MethodHandle blockPositionXYZ = null;
@@ -119,6 +146,12 @@ public class BlockChanger {
 		MethodHandle blockDataFromLegacyData = null;
 		MethodHandle mutableBlockPositionSet = null;
 		MethodHandle mutableBlockPositionXYZ = null;
+		// MethodHandle craftBlockGetNMS = null;
+		MethodHandle craftBlockGetNMSBlock = null;
+		MethodHandle nmsBlockGetBlockData = null;
+		MethodHandle worldRemoveTileEntity = null;
+		MethodHandle worldCapturedTileEntities = null;
+		MethodHandle capturedTileEntitiesContainsKey = null;
 
 		String asBlock = ReflectionUtils.supports(18) || ReflectionUtils.VER < 8 ? "a" : "asBlock";
 		String getBlockData = ReflectionUtils.supports(18) ? "n" : "getBlockData";
@@ -130,7 +163,10 @@ public class BlockChanger {
 		String getSections = ReflectionUtils.supports(18) ? "d" : "getSections";
 		String sectionSetType = ReflectionUtils.supports(18) ? "a" : ReflectionUtils.VER < 8 ? "setTypeId" : "setType";
 		String setXYZ = ReflectionUtils.supports(13) ? "d" : "c";
-
+		String getBlockData2 = ReflectionUtils.supports(13) ? "getNMS" : "getBlockData";
+		String removeTileEntity = ReflectionUtils.supports(18) ? "m" : ReflectionUtils.supports(14) ? "removeTileEntity" :
+			ReflectionUtils.supports(13) ? "n" : ReflectionUtils.supports(9) ? "s" : ReflectionUtils.supports(8) ? "t" : "p";
+		
 		MethodType notifyMethodType = ReflectionUtils.VER >= 14 ? MethodType.methodType(void.class, blockPosition, blockData, blockData, int.class) :
 			ReflectionUtils.VER < 8 ? MethodType.methodType(void.class, int.class, int.class, int.class) : ReflectionUtils.VER == 8 ?
 					MethodType.methodType(void.class, blockPosition) : MethodType.methodType(void.class, blockPosition, blockData, blockData, int.class) ;
@@ -146,6 +182,9 @@ public class BlockChanger {
 		MethodType chunkSectionConstructorMT = ReflectionUtils.supports(18) ? null :
 			ReflectionUtils.supports(14) ? MethodType.methodType(void.class, int.class) :
 				MethodType.methodType(void.class, int.class, boolean.class);
+		
+		MethodType removeTileEntityMethodType = ReflectionUtils.supports(8) ? MethodType.methodType(void.class, blockPosition) 
+				: MethodType.methodType(void.class, int.class, int.class, int.class);
 
 		MethodType fromLegacyDataMethodType = ReflectionUtils.VER <= 12 ? MethodType.methodType(blockData, int.class) : null;
 
@@ -182,7 +221,13 @@ public class BlockChanger {
 			} else if (ReflectionUtils.supports(17)) {
 				getSectionIndex = lookup.findVirtual(chunk, "getSectionIndex", MethodType.methodType(int.class, int.class));
 			}
-		} catch (NoSuchMethodException | IllegalAccessException e) {
+			craftBlockGetNMSBlock = ReflectionUtils.VER <= 12 ? lookup.unreflect(getNMSBlockMethod) : null;
+			nmsBlockGetBlockData = lookup.findVirtual(blockDataReference, getBlockData2, MethodType.methodType(blockData));
+			// craftBlockGetNMS = ReflectionUtils.supports(13) ? lookup.findVirtual(craftBlock, "getNMS", MethodType.methodType(blockData)) : null;
+			worldRemoveTileEntity = lookup.findVirtual(world, removeTileEntity, removeTileEntityMethodType);
+			worldCapturedTileEntities = ReflectionUtils.supports(8) ? lookup.findGetter(world, "capturedTileEntities", Map.class) : null;
+			capturedTileEntitiesContainsKey = ReflectionUtils.supports(8) ? lookup.findVirtual(Map.class, "containsKey", MethodType.methodType(boolean.class, Object.class)) : null;
+		} catch (NoSuchMethodException | IllegalAccessException | NoSuchFieldException e) {
 			e.printStackTrace();
 		}
 
@@ -203,6 +248,12 @@ public class BlockChanger {
 		CHUNK_SECTION = chunkSectionConstructor;
 		BLOCK_POSITION_CONSTRUCTOR = blockPositionConstructor;
 		BLOCK_DATA_FROM_LEGACY_DATA = blockDataFromLegacyData;
+		// CRAFT_BLOCK_GET_NMS = craftBlockGetNMS;
+		CRAFT_BLOCK_GET_NMS_BLOCK = craftBlockGetNMSBlock;
+		NMS_BLOCK_GET_BLOCK_DATA = nmsBlockGetBlockData;
+		WORLD_REMOVE_TILE_ENTITY = worldRemoveTileEntity;
+		WORLD_CAPTURED_TILE_ENTITIES = worldCapturedTileEntities;
+		IS_TILE_ENTITY = capturedTileEntitiesContainsKey;
 
 		BLOCK_DATA_GETTER = ReflectionUtils.supports(13) ? new BlockDataGetter() : ReflectionUtils.supports(8) ? 
 				new BlockDataGetterLegacy() : new BlockDataGetterAncient();
@@ -214,11 +265,13 @@ public class BlockChanger {
 						ReflectionUtils.supports(8) ? new BlockUpdaterLegacy(BLOCK_NOTIFY, CHUNK_SET_TYPE, CHUNK_SECTION, SET_SECTION_ELEMENT) :
 							new BlockUpdaterAncient(BLOCK_NOTIFY, CHUNK_SET_TYPE, CHUNK_SECTION, SET_SECTION_ELEMENT);
 
+		TILE_ENTITY_MANAGER = ReflectionUtils.supports(8) ? new TileEntityManagerSupported() : new TileEntityManagerDummy();
+		
 		Arrays.stream(Material.values())
 		.filter(Material::isBlock)
 		.forEach(BlockChanger::addNMSBlockData);
 
-		NMS_BLOCK_MATERIALS.put(Material.AIR, AIR_BLOCKDATA);
+		NMS_BLOCK_MATERIALS.put(Material.AIR, AIR_BLOCK_DATA);
 
 		AVAILABLE_BLOCKS = String.join(", ", NMS_BLOCK_MATERIALS.keySet().stream()
 				.map(Material::name)
@@ -304,6 +357,7 @@ public class BlockChanger {
 		Object nmsWorld = getWorld(world);
 		Object blockPosition = newBlockPosition(world, x, y, z);
 		Object blockData = getBlockData(material);
+		removeIfTileEntity(nmsWorld, blockPosition);
 		setTypeAndData(nmsWorld, blockPosition, blockData, physics ? 3 : 2);
 	}
 
@@ -321,6 +375,7 @@ public class BlockChanger {
 		Object nmsWorld = getWorld(world);
 		Object blockPosition = newBlockPosition(world, x, y, z);
 		Object blockData = getBlockData(itemStack);
+		removeIfTileEntity(nmsWorld, blockPosition);
 		setTypeAndData(nmsWorld, blockPosition, blockData, physics ? 3 : 2);
 	}
 
@@ -366,6 +421,7 @@ public class BlockChanger {
 		Object blockData = getBlockData(material);
 		if (blockData == null)
 			throw new NullPointerException("Unable to retrieve block data for the corresponding material.");
+		removeIfTileEntity(nmsWorld, blockPosition);
 		setTypeAndData(nmsWorld, blockPosition, blockData, physics ? 3 : 2);
 	}
 
@@ -381,6 +437,7 @@ public class BlockChanger {
 		Object nmsWorld = getWorld(world);
 		Object blockPosition = newBlockPosition(world, location.getBlockX(), location.getBlockY(), location.getBlockZ());
 		Object blockData = getBlockData(itemStack);
+		removeIfTileEntity(nmsWorld, blockPosition);
 		setTypeAndData(nmsWorld, blockPosition, blockData, physics ? 3 : 2);
 	}
 
@@ -423,6 +480,7 @@ public class BlockChanger {
 		Object blockData = getBlockData(material);
 		if (blockData == null)
 			throw new NullPointerException("Unable to retrieve block data for the corresponding material.");
+		removeIfTileEntity(nmsWorld, blockPosition);
 		setTypeAndData(nmsWorld, blockPosition, blockData, physics ? 3 : 2);
 	}
 
@@ -437,6 +495,7 @@ public class BlockChanger {
 		Object nmsWorld = getWorld(location.getWorld());
 		Object blockPosition = newBlockPosition(location.getWorld(), location.getBlockX(), location.getBlockY(), location.getBlockZ());
 		Object blockData = getBlockData(itemStack);
+		removeIfTileEntity(nmsWorld, blockPosition);
 		setTypeAndData(nmsWorld, blockPosition, blockData, physics ? 3 : 2);
 	}
 
@@ -488,6 +547,7 @@ public class BlockChanger {
 			int y = location.getBlockY();
 			int z = location.getBlockZ();
 			setBlockPosition(blockPosition, x, y, z);
+			removeIfTileEntity(nmsWorld, blockPosition);
 			setTypeAndData(nmsWorld, blockPosition, blockData, applyPhysics);
 		});
 	}
@@ -512,6 +572,7 @@ public class BlockChanger {
 			int y = location.getBlockY();
 			int z = location.getBlockZ();
 			setBlockPosition(blockPosition, x, y, z);
+			removeIfTileEntity(nmsWorld, blockPosition);
 			setTypeAndData(nmsWorld, blockPosition, blockData, applyPhysics);
 		});
 	}
@@ -651,7 +712,7 @@ public class BlockChanger {
 		if (blockData == null)
 			throw new NullPointerException("Unable to retrieve block data for the corresponding material.");
 		Object chunk = getChunkAt(nmsWorld, location);
-
+		removeIfTileEntity(nmsWorld, blockPosition);
 		setType(chunk, blockPosition, blockData, physics);
 		updateBlock(nmsWorld, blockPosition, blockData, physics);
 	}
@@ -669,7 +730,7 @@ public class BlockChanger {
 		Object blockPosition = newBlockPosition(location.getWorld(), location.getBlockX(), location.getBlockY(), location.getBlockZ());
 		Object blockData = getBlockData(itemStack);
 		Object chunk = getChunkAt(nmsWorld, location);
-
+		removeIfTileEntity(nmsWorld, blockPosition);
 		setType(chunk, blockPosition, blockData, physics);
 		updateBlock(nmsWorld, blockPosition, blockData, physics);
 	}
@@ -689,7 +750,6 @@ public class BlockChanger {
 		Object nmsWorld = getWorld(location.getWorld());
 		Object blockPosition = newMutableBlockPosition(location.getWorld(), location.getBlockX(), location.getBlockY(), location.getBlockZ());
 		Object blockData = getBlockData(itemStack);
-
 		CompletableFuture<Void> workloadFinishFuture = new CompletableFuture<>();
 		ChunkSetWorkload workload = new ChunkSetWorkload(nmsWorld, blockPosition, blockData, location, physics);
 		WORKLOAD_RUNNABLE.addWorkload(workload);
@@ -717,6 +777,7 @@ public class BlockChanger {
 			int z = location.getBlockZ();
 			Object chunk = getChunkAt(nmsWorld, x, z);
 			setBlockPosition(blockPosition, x, y, z);
+			removeIfTileEntity(nmsWorld, blockPosition);
 			setType(chunk, blockPosition, blockData, physics);
 		});
 	}
@@ -785,8 +846,9 @@ public class BlockChanger {
 		int l = z & 15;
 		Object[] sections = getSections(nmsChunk);
 		Object section = getSection(nmsChunk, sections, y);
-		setTypeChunkSection(section, j, k, l, blockData);
 		Object blockPosition = newBlockPosition(world, x, y, z);
+		removeIfTileEntity(nmsWorld, blockPosition);
+		setTypeChunkSection(section, j, k, l, blockData);
 		updateBlock(nmsWorld, blockPosition, blockData, physics);
 	}
 
@@ -822,8 +884,9 @@ public class BlockChanger {
 		int l = z & 15;
 		Object[] sections = getSections(nmsChunk);
 		Object section = getSection(nmsChunk, sections, y);
-		setTypeChunkSection(section, j, k, l, blockData);
 		Object blockPosition = newBlockPosition(world, x, y, z);
+		removeIfTileEntity(nmsWorld, blockPosition);
+		setTypeChunkSection(section, j, k, l, blockData);
 		updateBlock(nmsWorld, blockPosition, blockData, physics);
 	}
 
@@ -873,6 +936,7 @@ public class BlockChanger {
 			int l = z & 15;
 			Object[] sections = getSections(nmsChunk);
 			Object section = getSection(nmsChunk, sections, y);
+			removeIfTileEntity(nmsWorld, blockPosition);
 			setTypeChunkSection(section, j, k, l, blockData);
 			setBlockPosition(blockPosition, x, y, z);
 			updateBlock(nmsWorld, blockPosition, blockData, false);
@@ -900,6 +964,7 @@ public class BlockChanger {
 			int l = z & 15;
 			Object[] sections = getSections(nmsChunk);
 			Object section = getSection(nmsChunk, sections, y);
+			removeIfTileEntity(nmsWorld, blockPosition);
 			setTypeChunkSection(section, j, k, l, blockData);
 			setBlockPosition(blockPosition, x, y, z);
 			updateBlock(nmsWorld, blockPosition, blockData, false);
@@ -984,6 +1049,7 @@ public class BlockChanger {
 			int l = z & 15;
 			Object[] sections = getSections(nmsChunk);
 			Object section = getSection(nmsChunk, sections, y);
+			removeIfTileEntity(nmsWorld, blockPosition);
 			setTypeChunkSection(section, j, k, l, blockData);
 			setBlockPosition(blockPosition, x, y, z);
 			updateBlock(nmsWorld, blockPosition, blockData, physics);
@@ -1048,6 +1114,7 @@ public class BlockChanger {
 			int l = z & 15;
 			Object[] sections = getSections(nmsChunk);
 			Object section = getSection(nmsChunk, sections, y);
+			removeIfTileEntity(nmsWorld, blockPosition);
 			setTypeChunkSection(section, j, k, l, blockData);
 			setBlockPosition(blockPosition, x, y, z);
 			updateBlock(nmsWorld, blockPosition, blockData, physics);
@@ -1177,7 +1244,7 @@ public class BlockChanger {
 		return null;
 	}
 
-	private static Object getNMSWorld(World world) {
+	private static Object getNMSWorld(@Nonnull World world) {
 		try {
 			return WORLD_GET_HANDLE.invoke(world);
 		} catch (Throwable e) {
@@ -1186,7 +1253,7 @@ public class BlockChanger {
 		return null;
 	}
 
-	private static Object getNMSBlockData(ItemStack itemStack) {
+	private static @Nullable Object getNMSBlockData(@Nullable ItemStack itemStack) {
 		try {
 			if(itemStack == null) return null;
 			Object nmsItemStack = NMS_ITEM_STACK_COPY.invoke(itemStack);
@@ -1199,6 +1266,16 @@ public class BlockChanger {
 			e.printStackTrace();
 		}
 		return null;
+	}
+	
+	private static boolean isTileEntity(Object nmsWorld, Object blockPosition) {
+		return TILE_ENTITY_MANAGER.isTileEntity(nmsWorld, blockPosition);
+	}
+	
+	private static boolean removeIfTileEntity(Object nmsWorld, Object blockPosition) {
+		if(!isTileEntity(nmsWorld, blockPosition)) return false;
+		TILE_ENTITY_MANAGER.destroyTileEntity(nmsWorld, blockPosition);
+		return true;
 	}
 
 	/**
@@ -1281,8 +1358,9 @@ public class BlockChanger {
 	 * 
 	 * @param itemStack bukkit ItemStack
 	 * @return nms block data from bukkit item stack
+	 * @throws IllegalArgumentException if material is not a block
 	 */
-	public static Object getBlockData(ItemStack itemStack) {
+	public static @Nonnull Object getBlockData(@Nonnull ItemStack itemStack) {
 		Object blockData = BLOCK_DATA_GETTER.fromItemStack(itemStack);
 		if(blockData == null) throw new IllegalArgumentException("Couldn't convert specified itemstack to block data");
 		return blockData;
@@ -1293,8 +1371,27 @@ public class BlockChanger {
 	 * @param material to get block data for
 	 * @return stored nms block data for the specified material
 	 */
-	public static Object getBlockData(Material material) {
+	public static @Nullable Object getBlockData(@Nullable Material material) {
 		return NMS_BLOCK_MATERIALS.get(material);
+	}
+
+	/**
+	 * This method should get block data even if block is not actually placed i.e doesn't have location
+	 * <p>Doesn't retrieve the tile entity as of now</p>
+	 * @param block bukkit block to cast to nms block data
+	 * @return nms block data from bukkit block
+	 */
+	public static @Nonnull Object getBlockData(Block block) {
+		Object blockData = BLOCK_DATA_GETTER.fromBlock(block);
+		return blockData != null ? blockData : AIR_BLOCK_DATA;
+	}
+
+	/**
+	 * 
+	 * @return nms air block data
+	 */
+	public static Object getAirBlockData() {
+		return AIR_BLOCK_DATA;
 	}
 
 	/**
@@ -1389,6 +1486,78 @@ public class BlockChanger {
 
 	}
 
+	private interface TileEntityManager {
+		
+		default Object getCapturedTileEntities(Object nmsWorld) {
+			try {
+				return WORLD_CAPTURED_TILE_ENTITIES.invoke(nmsWorld);
+			} catch (Throwable e) {
+				e.printStackTrace();
+			}
+			return null;
+		}
+		
+		default boolean isTileEntity(Object nmsWorld, Object blockPosition) {
+			try {
+				return (boolean)IS_TILE_ENTITY.invoke(getCapturedTileEntities(nmsWorld), blockPosition);
+			} catch (Throwable e) {
+				e.printStackTrace();
+			}
+			return false;
+		}
+		
+		default void destroyTileEntity(Object nmsWorld, Object blockPosition) {
+			try {
+				WORLD_REMOVE_TILE_ENTITY.invoke(nmsWorld, blockPosition);
+			} catch (Throwable e) {
+				e.printStackTrace();
+			}
+		}
+		
+		/*
+		Store bukkit block variable {
+			Block block = ...
+		}
+		Get block data (title entity data still exists in old the bukkit block variable) {
+		 	Object blockData = BlockChanger.getBlockData(block);
+		}
+		Set block using BlockChanger within the method {
+			setType(...)
+		}
+		Check if block is a title entity {
+			isTitleEntity
+		}
+		Get tile entity that was stored in the bukkit block variable {
+			CraftBlockState craftBlockState = (CraftBlockState)block.getState();
+			// getState() creates a new block state with the location of that block
+			TileEntity nmsTileEntity = craftBlockState.getTileEntity();
+		}
+		Set tile entity using BlockChanger {
+			<Use nms method that applies tile entity on the block>
+		}
+		*/
+		
+	}
+	
+	private static class TileEntityManagerSupported implements TileEntityManager {}
+	
+	private static class TileEntityManagerDummy implements TileEntityManager {
+		
+		@Override
+		public Object getCapturedTileEntities(Object nmsWorld) {
+			return null;
+		}
+		
+		@Override
+		public boolean isTileEntity(Object nmsWorld, Object blockPosition) {
+			return false;
+		}
+		
+		@Override
+		public void destroyTileEntity(Object nmsWorld, Object blockPosition) {}
+		
+	}
+	
 	private interface BlockDataRetriever {
 
 		default Object getNMSItem(ItemStack itemStack) throws Throwable {
@@ -1397,6 +1566,17 @@ public class BlockChanger {
 			Object nmsItemStack = NMS_ITEM_STACK_COPY.invoke(itemStack);
 			if (nmsItemStack == null) throw new IllegalArgumentException("Failed to get NMS ItemStack!");
 			return NMS_ITEM_STACK_TO_ITEM.invoke(nmsItemStack);
+		}
+
+		// 1.7-1.12 requires 2 methods to get block data
+		default Object fromBlock(Block block) {
+			try {
+				Object nmsBlock = CRAFT_BLOCK_GET_NMS_BLOCK.invoke(block);
+				return NMS_BLOCK_GET_BLOCK_DATA.invoke(nmsBlock);
+			} catch (Throwable e) {
+				e.printStackTrace();
+			}
+			return null;
 		}
 
 		Object fromItemStack(ItemStack itemStack);
@@ -1416,6 +1596,17 @@ public class BlockChanger {
 			}
 			return null;
 		}
+		
+		// 1.13+ one method to get block data (getNMS())
+		@Override
+		public Object fromBlock(Block block) {
+			try {
+				return NMS_BLOCK_GET_BLOCK_DATA.invoke(block);
+			} catch (Throwable e) {
+				e.printStackTrace();
+			}
+			return null;
+		}
 
 	}
 
@@ -1426,7 +1617,7 @@ public class BlockChanger {
 		public Object fromItemStack(ItemStack itemStack) {
 			try {
 				Object nmsItem = getNMSItem(itemStack);
-				if(nmsItem == null) return AIR_BLOCKDATA;
+				if(nmsItem == null) return AIR_BLOCK_DATA;
 				Object block = NMS_BLOCK_FROM_ITEM.invoke(nmsItem);
 				short data = itemStack.getDurability();
 				return data > 0 ? BLOCK_DATA_FROM_LEGACY_DATA.invoke(block, data) : ITEM_TO_BLOCK_DATA.invoke(block);
@@ -1445,7 +1636,7 @@ public class BlockChanger {
 		public Object fromItemStack(ItemStack itemStack) {
 			try {
 				Object nmsItem = getNMSItem(itemStack);
-				if(nmsItem == null) return AIR_BLOCKDATA;
+				if(nmsItem == null) return AIR_BLOCK_DATA;
 				return NMS_BLOCK_FROM_ITEM.invoke(nmsItem);
 			} catch (Throwable e) {
 				e.printStackTrace();
@@ -1509,12 +1700,13 @@ public class BlockChanger {
 		@Override
 		public boolean compute() {
 			BlockChanger.setBlockPosition(blockPosition, location.getBlockX(), location.getBlockY(), location.getBlockZ());
+			BlockChanger.removeIfTileEntity(nmsWorld, blockPosition);
 			BlockChanger.setTypeAndData(nmsWorld, blockPosition, blockData, physics);
 			return true;
 		}
 
 	}
-
+	
 	private static class ChunkSetWorkload implements Workload {
 
 		private Object nmsWorld;
@@ -1535,6 +1727,7 @@ public class BlockChanger {
 		public boolean compute() {
 			BlockChanger.setBlockPosition(blockPosition, location.getBlockX(), location.getBlockY(), location.getBlockZ());
 			Object chunk = BlockChanger.getChunkAt(nmsWorld, location.getBlockX(), location.getBlockZ());
+			BlockChanger.removeIfTileEntity(nmsWorld, blockPosition);
 			BlockChanger.setType(chunk, blockPosition, blockData, physics);
 			BlockChanger.updateBlock(nmsWorld, blockPosition, blockData, physics);
 			return true;
@@ -1570,6 +1763,7 @@ public class BlockChanger {
 			int l = z & 15;
 			Object[] sections = BlockChanger.getSections(nmsChunk);
 			Object section = BlockChanger.getSection(nmsChunk, sections, y);
+			BlockChanger.removeIfTileEntity(nmsWorld, blockPosition);
 			BlockChanger.setTypeChunkSection(section, j, k, l, blockData);
 			BlockChanger.updateBlock(nmsWorld, blockPosition, blockData, physics);
 			return true;
