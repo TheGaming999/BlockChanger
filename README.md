@@ -1,4 +1,6 @@
 # BlockChanger
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FTheGaming999%2FBlockChanger.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2FTheGaming999%2FBlockChanger?ref=badge_shield)
+
 1.7 - 1.19 class that allows you to change blocks at blazing fast speeds  
 
 ### Setup
@@ -32,3 +34,7 @@ BlockChanger. // see all the methods
 ```  
 ### ToDo  
 - Method to update lighting?  
+
+
+## License
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FTheGaming999%2FBlockChanger.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2FTheGaming999%2FBlockChanger?ref=badge_large)
