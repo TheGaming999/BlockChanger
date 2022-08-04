@@ -1,6 +1,10 @@
 # BlockChanger
-[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FTheGaming999%2FBlockChanger.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2FTheGaming999%2FBlockChanger?ref=badge_shield)
+<div align="center">
 
+  <a href="">[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FTheGaming999%2FBlockChanger.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2FTheGaming999%2FBlockChanger?ref=badge_shield)</a>
+  <a href=""> [![Codacy Badge](https://app.codacy.com/project/badge/Grade/a1ecc2905ea14fd39b29a5a3df2d124c)](https://www.codacy.com/gh/TheGaming999/BlockChanger/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=TheGaming999/BlockChanger&amp;utm_campaign=Badge_Grade)</a>
+
+</div>
 1.7 - 1.19 class that allows you to change blocks at blazing fast speeds  
 
 ### Setup
@@ -39,4 +43,3 @@ BlockChanger. // see all the methods
 
 ## License
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FTheGaming999%2FBlockChanger.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2FTheGaming999%2FBlockChanger?ref=badge_large)
-[![Codacy Badge](https://app.codacy.com/project/badge/Grade/a1ecc2905ea14fd39b29a5a3df2d124c)](https://www.codacy.com/gh/TheGaming999/BlockChanger/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=TheGaming999/BlockChanger&amp;utm_campaign=Badge_Grade)
