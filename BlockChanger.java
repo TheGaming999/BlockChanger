@@ -29,7 +29,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitTask;
 
 /**
- * @version 1.6
+ * @version 1.7
  * @author TheGaming999
  * @apiNote 1.7 - 1.19 easy to use class to take advantage of different methods
  *          that allow you to change blocks at rocket speeds
@@ -117,9 +117,18 @@ public class BlockChanger {
 	private static final MethodHandle BLOCK_NOTIFY;
 	private static final MethodHandle CRAFT_BLOCK_GET_NMS_BLOCK;
 	private static final MethodHandle NMS_BLOCK_GET_BLOCK_DATA;
-	private static final MethodHandle WORLD_REMOVE_TILE_ENTITY;
+	/**
+	 * A map containing placed tile entities, world.capturedTileEntities;
+	 */
 	private static final MethodHandle WORLD_CAPTURED_TILE_ENTITIES;
+	/**
+	 * Check if tile entity is in a map, world.capturedTileEntities.containsKey(x);
+	 */
 	private static final MethodHandle IS_TILE_ENTITY;
+	/**
+	 * Remove a title entity from a map, world.capturedTileEntities.remove(x);
+	 */
+	private static final MethodHandle WORLD_REMOVE_TILE_ENTITY;
 	private static final MethodHandle GET_NMS_TILE_ENTITY;
 	private static final MethodHandle GET_SNAPSHOT_NBT;
 	private static final MethodHandle GET_SNAPSHOT;
@@ -132,6 +141,8 @@ public class BlockChanger {
 	private static final WorkloadRunnable WORKLOAD_RUNNABLE;
 	private static final JavaPlugin PLUGIN;
 	private static final Object AIR_BLOCK_DATA;
+	private static final int REVISION = ReflectionUtils.VERSION.contains("R")
+			? Integer.parseInt(ReflectionUtils.VERSION.split("_R")[1]) : 1;
 
 	static {
 
@@ -213,7 +224,8 @@ public class BlockChanger {
 
 		// Method names
 		String asBlock = ReflectionUtils.supports(18) || ReflectionUtils.VER < 8 ? "a" : "asBlock";
-		String getBlockData = ReflectionUtils.supports(19) ? "m" : ReflectionUtils.supports(18) ? "n" : "getBlockData";
+		String getBlockData = ReflectionUtils.supports(19) ? REVISION == 3 ? "o" : "m"
+				: ReflectionUtils.supports(18) ? "n" : "getBlockData";
 		String getItem = ReflectionUtils.supports(18) ? "c" : "getItem";
 		String setType = ReflectionUtils.supports(18) ? "a" : "setTypeAndData";
 		String getChunkAt = ReflectionUtils.supports(18) ? "d" : "getChunkAt";
@@ -394,7 +406,7 @@ public class BlockChanger {
 
 	/**
 	 * Simply calls <b>static {}</b> so methods get cached, and ensures that the
-	 * first setBlock method call is as executed as fast as possible.
+	 * first setBlock method call is executed as fast as possible.
 	 * <p>
 	 * This already happens when calling a method for the first time.
 	 * </p>
@@ -678,8 +690,7 @@ public class BlockChanger {
 				location.getBlockZ());
 		Object blockData = getBlockData(itemStack);
 		CompletableFuture<Void> workloadFinishFuture = new CompletableFuture<>();
-		BlockSetWorkload workload = new BlockSetWorkload(nmsWorld, blockPosition, blockData, location, physics);
-		WORKLOAD_RUNNABLE.addWorkload(workload);
+		WORKLOAD_RUNNABLE.addWorkload(new BlockSetWorkload(nmsWorld, blockPosition, blockData, location, physics));
 		WORKLOAD_RUNNABLE.whenComplete(() -> workloadFinishFuture.complete(null));
 		return workloadFinishFuture;
 	}
@@ -777,10 +788,8 @@ public class BlockChanger {
 		CompletableFuture<Void> workloadFinishFuture = new CompletableFuture<>();
 		WorkloadRunnable workloadRunnable = new WorkloadRunnable();
 		BukkitTask workloadTask = Bukkit.getScheduler().runTaskTimer(PLUGIN, workloadRunnable, 1, 1);
-		locations.forEach(location -> {
-			BlockSetWorkload workload = new BlockSetWorkload(nmsWorld, blockPosition, blockData, location, physics);
-			workloadRunnable.addWorkload(workload);
-		});
+		locations.forEach(location -> workloadRunnable
+				.addWorkload(new BlockSetWorkload(nmsWorld, blockPosition, blockData, location, physics)));
 		workloadRunnable.whenComplete(() -> {
 			workloadFinishFuture.complete(null);
 			workloadTask.cancel();
@@ -967,8 +976,7 @@ public class BlockChanger {
 				location.getBlockZ());
 		Object blockData = getBlockData(itemStack);
 		CompletableFuture<Void> workloadFinishFuture = new CompletableFuture<>();
-		ChunkSetWorkload workload = new ChunkSetWorkload(nmsWorld, blockPosition, blockData, location, physics);
-		WORKLOAD_RUNNABLE.addWorkload(workload);
+		WORKLOAD_RUNNABLE.addWorkload(new ChunkSetWorkload(nmsWorld, blockPosition, blockData, location, physics));
 		WORKLOAD_RUNNABLE.whenComplete(() -> workloadFinishFuture.complete(null));
 		return workloadFinishFuture;
 	}
@@ -1032,10 +1040,8 @@ public class BlockChanger {
 		CompletableFuture<Void> workloadFinishFuture = new CompletableFuture<>();
 		WorkloadRunnable workloadRunnable = new WorkloadRunnable();
 		BukkitTask workloadTask = Bukkit.getScheduler().runTaskTimer(PLUGIN, workloadRunnable, 1, 1);
-		locations.forEach(location -> {
-			ChunkSetWorkload workload = new ChunkSetWorkload(nmsWorld, blockPosition, blockData, location, physics);
-			workloadRunnable.addWorkload(workload);
-		});
+		locations.forEach(location -> workloadRunnable
+				.addWorkload(new ChunkSetWorkload(nmsWorld, blockPosition, blockData, location, physics)));
 		workloadRunnable.whenComplete(() -> {
 			workloadFinishFuture.complete(null);
 			workloadTask.cancel();
@@ -1146,8 +1152,7 @@ public class BlockChanger {
 		if (blockData == null)
 			throw new NullPointerException("Unable to retrieve block data for the corresponding material.");
 		CompletableFuture<Void> workloadFinishFuture = new CompletableFuture<Void>();
-		SectionSetWorkload workload = new SectionSetWorkload(nmsWorld, blockPosition, blockData, location, physics);
-		WORKLOAD_RUNNABLE.addWorkload(workload);
+		WORKLOAD_RUNNABLE.addWorkload(new SectionSetWorkload(nmsWorld, blockPosition, blockData, location, physics));
 		WORKLOAD_RUNNABLE.whenComplete(() -> workloadFinishFuture.complete(null));
 		return workloadFinishFuture;
 	}
@@ -1232,10 +1237,8 @@ public class BlockChanger {
 		CompletableFuture<Void> workloadFinishFuture = new CompletableFuture<>();
 		WorkloadRunnable workloadRunnable = new WorkloadRunnable();
 		BukkitTask workloadTask = Bukkit.getScheduler().runTaskTimer(PLUGIN, workloadRunnable, 1, 1);
-		locations.forEach(location -> {
-			SectionSetWorkload workload = new SectionSetWorkload(nmsWorld, blockPosition, blockData, location, false);
-			workloadRunnable.addWorkload(workload);
-		});
+		locations.forEach(location -> workloadRunnable
+				.addWorkload(new SectionSetWorkload(nmsWorld, blockPosition, blockData, location, false)));
 		workloadRunnable.whenComplete(() -> {
 			workloadFinishFuture.complete(null);
 			workloadTask.cancel();
@@ -1902,8 +1905,7 @@ public class BlockChanger {
 
 	}
 
-	private static class TileEntityManagerSupported implements TileEntityManager {
-	}
+	private static class TileEntityManagerSupported implements TileEntityManager {}
 
 	private static class TileEntityManagerDummy implements TileEntityManager {
 
@@ -2689,6 +2691,7 @@ final class ReflectionUtils {
 	 * @since 4.0.0
 	 */
 	public static final int VER = Integer.parseInt(VERSION.substring(1).split("_")[1]);
+
 	/**
 	 * Mojang remapped their NMS in 1.17
 	 * https://www.spigotmc.org/threads/spigot-bungeecord-1-17.510208/#post-4184317
@@ -2835,8 +2838,7 @@ final class ReflectionUtils {
 			// Checking if the connection is not null is enough. There is no need to check
 			// if the player is online.
 			if (connection != null) {
-				for (Object packet : packets)
-					SEND_PACKET.invoke(connection, packet);
+				for (Object packet : packets) SEND_PACKET.invoke(connection, packet);
 			}
 		} catch (Throwable throwable) {
 			throwable.printStackTrace();
