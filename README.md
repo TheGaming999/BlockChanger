@@ -5,7 +5,9 @@
   <a href=""> [![Codacy Badge](https://app.codacy.com/project/badge/Grade/a1ecc2905ea14fd39b29a5a3df2d124c)](https://www.codacy.com/gh/TheGaming999/BlockChanger/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=TheGaming999/BlockChanger&amp;utm_campaign=Badge_Grade)</a>
 
 </div>
-1.7 - 1.19 class that allows you to change blocks at blazing fast speeds  
+1.7 - 1.20 single class that allows you to change blocks at blazing fast speeds.  
+  
+Please refer to this thread for more information: (https://www.spigotmc.org/threads/methods-for-changing-massive-amount-of-blocks-up-to-14m-blocks-s.395868/)  
 
 ### Setup
 Just import the class to your project.  
