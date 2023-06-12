@@ -11,6 +11,7 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.regex.Matcher;
@@ -31,7 +32,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitTask;
 
 /**
- * @version 1.8
+ * @version 1.8.1
  * @author TheGaming999
  * @apiNote 1.7 - 1.20 easy to use class to take advantage of different methods
  *          that allow you to change blocks at rocket speeds
@@ -55,6 +56,7 @@ import org.bukkit.scheduler.BukkitTask;
 public class BlockChanger {
 
 	private static final Map<Material, Object> NMS_BLOCK_MATERIALS = new HashMap<>();
+	private static final Map<String, Object> NMS_BLOCK_NAMES = new HashMap<>();
 	private static final Map<World, Object> NMS_WORLDS = new HashMap<>();
 	private static final Map<String, Object> NMS_WORLD_NAMES = new HashMap<>();
 	private static final MethodHandle WORLD_GET_HANDLE;
@@ -70,6 +72,13 @@ public class BlockChanger {
 	 * <i>Block.asBlock({@literal<net.minecraft.world.item.Item>})</i>
 	 */
 	private static final MethodHandle NMS_BLOCK_FROM_ITEM;
+	/**
+	 * <p>
+	 * Invoked parameters ->
+	 * <i>Block.getByName({@literal<net.minecraft.world.item.Item>})</i>
+	 */
+	private static final MethodHandle NMS_BLOCK_FROM_NAME;
+	private static final MethodHandle NMS_BLOCK_NAME;
 	/**
 	 * <p>
 	 * Invoked parameters ->
@@ -152,6 +161,7 @@ public class BlockChanger {
 		Class<?> craftBlock = ReflectionUtils.getCraftClass("block.CraftBlock");
 		Class<?> blockPosition = ReflectionUtils.supports(8) ? ReflectionUtils.getNMSClass("core", "BlockPosition")
 				: null;
+		Class<?> blocks = ReflectionUtils.getNMSClass("world.level.block", "Blocks");
 		Class<?> mutableBlockPosition = ReflectionUtils.supports(8)
 				? ReflectionUtils.getNMSClass("core", "BlockPosition$MutableBlockPosition") : null;
 		Class<?> blockData = ReflectionUtils.supports(8)
@@ -198,6 +208,8 @@ public class BlockChanger {
 		MethodHandle blockPositionXYZ = null;
 		MethodHandle nmsItemStackCopy = null;
 		MethodHandle blockFromItem = null;
+		MethodHandle blockFromName = null;
+		MethodHandle blockName = null;
 		MethodHandle nmsItemStackToItem = null;
 		MethodHandle itemToBlockData = null;
 		MethodHandle setTypeAndData = null;
@@ -224,6 +236,8 @@ public class BlockChanger {
 
 		// Method names
 		String asBlock = ReflectionUtils.supports(18) || ReflectionUtils.MINOR_NUMBER < 8 ? "a" : "asBlock";
+		String blockGetByName = ReflectionUtils.supports(8) ? "getByName" : "idk";
+		String blockGetName = ReflectionUtils.supports(20) ? "f" : ReflectionUtils.supports(18) ? "h" : "a";
 		String getBlockData = ReflectionUtils.supports(20) ? "n"
 				: ReflectionUtils.supports(19) ? ReflectionUtils.supportsPatch(3) ? "o" : "m"
 				: ReflectionUtils.supports(18) ? "n" : "getBlockData";
@@ -279,6 +293,11 @@ public class BlockChanger {
 			nmsItemStackCopy = lookup.findStatic(craftItemStack, "asNMSCopy",
 					MethodType.methodType(worldItemStack, ItemStack.class));
 			blockFromItem = lookup.findStatic(block, asBlock, MethodType.methodType(block, item));
+
+			blockName = lookup.findVirtual(block, blockGetName, MethodType.methodType(String.class));
+			if (ReflectionUtils.MINOR_NUMBER < 18) {
+				blockFromName = lookup.findStatic(block, blockGetByName, MethodType.methodType(block, String.class));
+			}
 			if (ReflectionUtils.supports(8)) {
 				blockPositionXYZ = lookup.findConstructor(blockPosition,
 						MethodType.methodType(void.class, int.class, int.class, int.class));
@@ -344,6 +363,8 @@ public class BlockChanger {
 		WORLD_GET_CHUNK = worldGetChunk;
 		NMS_ITEM_STACK_COPY = nmsItemStackCopy;
 		NMS_BLOCK_FROM_ITEM = blockFromItem;
+		NMS_BLOCK_FROM_NAME = blockFromName;
+		NMS_BLOCK_NAME = blockName;
 		NMS_ITEM_STACK_TO_ITEM = nmsItemStackToItem;
 		ITEM_TO_BLOCK_DATA = itemToBlockData;
 		SET_TYPE_AND_DATA = setTypeAndData;
@@ -384,7 +405,7 @@ public class BlockChanger {
 		TILE_ENTITY_MANAGER = ReflectionUtils.supports(8) ? new TileEntityManagerSupported()
 				: new TileEntityManagerDummy();
 
-		Arrays.stream(Material.values()).filter(Material::isBlock).forEach(BlockChanger::addNMSBlockData);
+		Arrays.stream(Material.values()).filter(b -> b.isBlock()).forEach(BlockChanger::addNMSBlockData);
 
 		NMS_BLOCK_MATERIALS.put(Material.AIR, AIR_BLOCK_DATA);
 
@@ -394,6 +415,23 @@ public class BlockChanger {
 						.map(Material::name)
 						.map(String::toLowerCase)
 						.collect(Collectors.toList()));
+
+		Arrays.stream(blocks.getDeclaredFields()).filter(field -> field.getType() == block).map(field -> {
+			try {
+				return field.get(block);
+			} catch (IllegalArgumentException | IllegalAccessException e) {
+				e.printStackTrace();
+			}
+			return null;
+		}).forEach(nmsBlock -> {
+			try {
+				String name = (String) NMS_BLOCK_NAME.invoke(nmsBlock);
+				name = name.substring(name.lastIndexOf(".") + 1, name.length()).toUpperCase();
+				NMS_BLOCK_NAMES.put(name, nmsBlock);
+			} catch (Throwable e) {
+				e.printStackTrace();
+			}
+		});
 
 		Bukkit.getWorlds().forEach(BlockChanger::addNMSWorld);
 
@@ -434,6 +472,49 @@ public class BlockChanger {
 			NMS_WORLDS.put(world, nmsWorld);
 			NMS_WORLD_NAMES.put(world.getName(), nmsWorld);
 		}
+	}
+
+	/**
+	 * If a material fails to pass this method, then it cannot be placed using any
+	 * of the setBlock methods.
+	 * 
+	 * @param material to check
+	 * @return whether the given material can be placed or not
+	 */
+	public static boolean isPlaceable(Material material) {
+		try {
+			return NMS_BLOCK_MATERIALS.containsKey(material) || NMS_BLOCK_NAMES.containsKey(material.name())
+					|| BLOCK_DATA_GETTER.getNMSItem(new ItemStack(material)) != null;
+		} catch (Throwable e) {
+			e.printStackTrace();
+		}
+		return false;
+	}
+
+	/**
+	 * If an ItemStack fails to pass this method, then it cannot be placed using any
+	 * of this class methods.
+	 * 
+	 * @param itemStack to check
+	 * @return whether the given ItemStack can be placed or not
+	 */
+	public static boolean isPlaceable(ItemStack itemStack) {
+		Material mat = itemStack.getType();
+		try {
+			return NMS_BLOCK_MATERIALS.containsKey(mat) || NMS_BLOCK_NAMES.containsKey(mat.name())
+					|| BLOCK_DATA_GETTER.getNMSItem(itemStack) != null;
+		} catch (Throwable e) {
+			e.printStackTrace();
+		}
+		return false;
+	}
+
+	public static boolean isValidNMSBlockName(String name) {
+		return NMS_BLOCK_NAMES.containsKey(name);
+	}
+
+	public static boolean isValidNMSBlockName(ItemStack itemStack) {
+		return NMS_BLOCK_NAMES.containsKey(itemStack.getType().name());
 	}
 
 	/**
@@ -831,6 +912,9 @@ public class BlockChanger {
 			boolean physics) {
 		World world = loc1.getWorld();
 		Object nmsWorld = getWorld(world);
+		if (itemStack.getType() == Material.LAVA) {
+			BLOCK_DATA_GETTER.fromItemStack(itemStack);
+		}
 		Object blockData = getBlockData(itemStack);
 		int x1 = Math.min(loc1.getBlockX(), loc2.getBlockX());
 		int y1 = Math.min(loc1.getBlockY(), loc2.getBlockY());
@@ -1757,6 +1841,17 @@ public class BlockChanger {
 	}
 
 	/**
+	 * 
+	 * @return a list of nms block materials including block materials that cannot
+	 *         be given as
+	 *         items in an inventory,
+	 *         such as lava and water.
+	 */
+	public static Set<String> getAllNMSBlockMaterials() {
+		return NMS_BLOCK_NAMES.keySet();
+	}
+
+	/**
 	 * physics: 3 = yes, 2 = no
 	 * 
 	 * @return methods that accept nms objects
@@ -1934,8 +2029,9 @@ public class BlockChanger {
 		default Object getNMSItem(ItemStack itemStack) throws Throwable {
 			if (itemStack == null) throw new NullPointerException("ItemStack is null!");
 			if (itemStack.getType() == Material.AIR) return null;
+			if (NMS_BLOCK_NAMES.containsKey(itemStack.getType().name())) return null;
 			Object nmsItemStack = NMS_ITEM_STACK_COPY.invoke(itemStack);
-			if (nmsItemStack == null) throw new IllegalArgumentException("Failed to get NMS ItemStack!");
+			if (nmsItemStack == null) return null;
 			return NMS_ITEM_STACK_TO_ITEM.invoke(nmsItemStack);
 		}
 
@@ -1960,7 +2056,9 @@ public class BlockChanger {
 		@Override
 		public Object fromItemStack(ItemStack itemStack) {
 			try {
-				Object block = NMS_BLOCK_FROM_ITEM.invoke(getNMSItem(itemStack));
+				Object nmsItem = getNMSItem(itemStack);
+				Object block = nmsItem != null ? NMS_BLOCK_FROM_ITEM.invoke(nmsItem)
+						: NMS_BLOCK_NAMES.get(itemStack.getType().name());
 				return ITEM_TO_BLOCK_DATA.invoke(block);
 			} catch (Throwable e) {
 				e.printStackTrace();
@@ -1988,8 +2086,9 @@ public class BlockChanger {
 		public Object fromItemStack(ItemStack itemStack) {
 			try {
 				Object nmsItem = getNMSItem(itemStack);
-				if (nmsItem == null) return AIR_BLOCK_DATA;
-				Object block = NMS_BLOCK_FROM_ITEM.invoke(nmsItem);
+				Object possibleBlock = NMS_BLOCK_FROM_NAME.invoke(itemStack.getType().name().toLowerCase());
+				if (nmsItem == null && possibleBlock == null) return AIR_BLOCK_DATA;
+				Object block = possibleBlock == null ? NMS_BLOCK_FROM_ITEM.invoke(nmsItem) : possibleBlock;
 				short data = itemStack.getDurability();
 				return data > 0 ? BLOCK_DATA_FROM_LEGACY_DATA.invoke(block, data) : ITEM_TO_BLOCK_DATA.invoke(block);
 			} catch (Throwable e) {
@@ -2006,6 +2105,7 @@ public class BlockChanger {
 		@Override
 		public Object fromItemStack(ItemStack itemStack) {
 			try {
+				if (!itemStack.getType().isSolid()) return getBlockData(itemStack.getType());
 				Object nmsItem = getNMSItem(itemStack);
 				if (nmsItem == null) return AIR_BLOCK_DATA;
 				return NMS_BLOCK_FROM_ITEM.invoke(nmsItem);
