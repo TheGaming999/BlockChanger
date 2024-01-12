@@ -13,13 +13,17 @@ Please refer to this thread for more information: (https://www.spigotmc.org/thre
 Just import the class to your project.  
 ### Usage
 ```java
+// player location as an example.
 Player player = ...
 BlockChanger.setBlock(player.getLocation(), Material.GOLD_BLOCK);
 BlockChanger.setBlock(player.getLocation(), new ItemStack(Material.GOLD_BLOCK));
 
-// Usage of the async methods is the same as the regular methods.
+// Usage of async methods is the same as the regular methods.
+// Type 1: Set block by NMS World method (nmsWorld#setTypeAndData) (80-90K blocks per second)
 BlockChanger.setBlockAsynchronously(player.getLocation(), new ItemStack(Material.STONE), false);
+// Type 2: Set block by NMS Chunk method (nmsChunk#setType) (2.19M blocks per second)
 BlockChanger.setChunkBlockAsynchronously(player.getLocation(), new ItemStack(Material.DIRT), false);
+// Type 3: Set block by NMS ChunkSection method (nmsChunkSection#setType) (7.9M blocks per second)
 BlockChanger.setSectionBlockAsynchronously(player.getLocation(), new ItemStack(Material.GOLD_ORE), false);
 
 // cornerA and cornerB are locations.
